@@ -71,6 +71,8 @@ export function MainPreview({
   currentIndex,
   setCurrentIndex,
   steps,
+  isPickingColor,
+  onColorPick,
 }: MainPreviewProps) {
   const isSpacePressedRef = useRef(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false); // keep state for UI re-render (cursor etc)
