@@ -87,7 +87,16 @@ export default function SpriteMaster() {
     allowRotation: false,
     trimSprites: true,
     powerOfTwo: false,
-    forceSquare: false
+    forceSquare: false,
+
+    // Color removal defaults
+    pickedColor: undefined,
+    colorTolerance: 12,
+    colorMode: 'connected',
+    colorSoftEdge: true,
+
+    // Edge refine default
+    edgeStrength: 1,
   });
 
   // Global Editor Playback State
