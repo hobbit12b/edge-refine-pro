@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFrameSelection } from '@/hooks/useFrameSelection';
+import { useHistory } from '@/hooks/useHistory';
 import { FileUpload } from '@/components/FileUpload';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { MainPreview } from '@/components/MainPreview';
@@ -24,8 +25,6 @@ export default function SpriteMaster() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [activeView, setActiveView] = useState<'editor' | 'analyzer' | 'test' | 'export'>('editor');
-  const [history, setHistory] = useState<{ frames: Frame[], selectedIds: Set<string> }[]>([]);
-  const [redoStack, setRedoStack] = useState<{ frames: Frame[], selectedIds: Set<string> }[]>([]);
   const [duplicateIds, setDuplicateIds] = useState<Set<string>>(new Set());
   const [isDetectingDuplicates, setIsDetectingDuplicates] = useState(false);
   const [removalState, setRemovalState] = useState({ active: false, current: 0, total: 0, progress: 0 });
@@ -204,8 +203,7 @@ export default function SpriteMaster() {
 
         setIsAppending(false);
       } else {
-        setHistory([]);
-        setRedoStack([]);
+        clearHistory();
         setFrames(extracted);
         setOriginalFrames(extracted);
         setChapters([]);
@@ -398,8 +396,7 @@ export default function SpriteMaster() {
       setIsAppending(false);
       setUploadedImage(null);
       } else {
-        setHistory([]);
-        setRedoStack([]);
+        clearHistory();
         setFrames(slicedFrames);
         setOriginalFrames(slicedFrames);
         setChapters([]);
@@ -427,10 +424,19 @@ export default function SpriteMaster() {
       }
   };
 
-  const pushToHistory = useCallback(() => {
-    setHistory(prev => [...prev.slice(-19), { frames: [...frames], selectedIds: new Set(selectedIds) }]);
-    setRedoStack([]);
-  }, [frames, selectedIds]);
+  const {
+    history,
+    redoStack,
+    pushToHistory,
+    undo,
+    redo,
+    clearHistory,
+  } = useHistory({
+    frames,
+    selectedIds,
+    setFrames,
+    setSelectedIds,
+  });
 
   const selectAllWithHistory = useCallback(() => {
     pushToHistory();
@@ -441,34 +447,6 @@ export default function SpriteMaster() {
     pushToHistory();
     deselectAll();
   }, [pushToHistory, deselectAll]);
-
-  const undo = useCallback(() => {
-    if (history.length === 0) return;
-    setHistory(prev => {
-      const newHistory = [...prev];
-      const prevState = newHistory.pop();
-      if (prevState) {
-        setRedoStack(redo => [...redo, { frames: [...frames], selectedIds: new Set(selectedIds) }]);
-        setFrames(prevState.frames);
-        setSelectedIds(prevState.selectedIds);
-      }
-      return newHistory;
-    });
-  }, [history, frames, selectedIds]);
-
-  const redo = useCallback(() => {
-    if (redoStack.length === 0) return;
-    setRedoStack(prev => {
-      const newRedo = [...prev];
-      const nextState = newRedo.pop();
-      if (nextState) {
-        setHistory(h => [...h, { frames: [...frames], selectedIds: new Set(selectedIds) }]);
-        setFrames(nextState.frames);
-        setSelectedIds(nextState.selectedIds);
-      }
-      return newRedo;
-    });
-  }, [redoStack, frames, selectedIds]);
 
   const deleteSelected = useCallback(() => {
     pushToHistory();
@@ -678,8 +656,7 @@ export default function SpriteMaster() {
     setLastSelectedId(null);
     setFocusedFrameId(null);
     setActiveView('editor');
-    setHistory([]);
-    setRedoStack([]);
+    clearHistory();
     setDuplicateIds(new Set());
     setIsDetectingDuplicates(false);
     setRemovalState({ active: false, current: 0, total: 0, progress: 0 });
