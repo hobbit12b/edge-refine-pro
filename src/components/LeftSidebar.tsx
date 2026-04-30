@@ -488,13 +488,13 @@ export function LeftSidebar({
               onClick={onPickColor}
               className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
                 isPickingColor
-                  ? 'bg-cyan-600 border-cyan-500 text-white animate-pulse'
+                  ? 'bg-cyan-600 border-cyan-400 text-white ring-2 ring-cyan-400/40'
                   : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-900'
               }`}
-              title="Klik daarna op een achtergrondpixel in de preview"
+              title="Klik daarna op een achtergrondpixel in de preview (Esc = annuleren)"
             >
               <Pencil size={12} />
-              <span>{isPickingColor ? 'Kies pixel…' : 'Pipet'}</span>
+              <span>{isPickingColor ? 'Klik in preview…' : 'Kies pixel'}</span>
             </button>
             <input
               type="color"
@@ -504,6 +504,11 @@ export function LeftSidebar({
               title="Of kies handmatig"
             />
           </div>
+          {isPickingColor && (
+            <p className="text-[9px] text-cyan-300 leading-tight -mt-1">
+              Klik nu op een achtergrondpixel in de preview. Druk Esc om te annuleren.
+            </p>
+          )}
 
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] font-bold text-zinc-500 uppercase">

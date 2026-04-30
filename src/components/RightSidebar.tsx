@@ -453,73 +453,7 @@ export function RightSidebar({
           />
         </div>
 
-        {/* Alignment Controls */}
-        {(focusedFrameId || selectedIds.size > 0) && (
-          <div className="p-4 bg-zinc-900/40 border-t border-zinc-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Alignment (Offset)
-              </h3>
-              <span className="text-[8px] text-zinc-600 font-mono">
-                Shift + Click = 10px
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-center gap-2 p-2 bg-zinc-950 border border-zinc-800 rounded-xl">
-              <div className="grid grid-cols-3 gap-1">
-                <div />
-                <button 
-                  onClick={(e) => {
-                    const delta = e.shiftKey ? 10 : 1;
-                    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-                    onUpdateFramesOffset(targetIds, 0, -delta);
-                  }}
-                  className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all outline-none"
-                >
-                  <ChevronUp size={16} />
-                </button>
-                <div />
-                
-                <button 
-                  onClick={(e) => {
-                    const delta = e.shiftKey ? 10 : 1;
-                    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-                    onUpdateFramesOffset(targetIds, -delta, 0);
-                  }}
-                  className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all outline-none"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <div className="flex flex-col items-center justify-center p-1 border border-zinc-800/50 rounded bg-zinc-900/10">
-                  <span className="text-[9px] font-mono text-purple-400">XY</span>
-                </div>
-                <button 
-                  onClick={(e) => {
-                    const delta = e.shiftKey ? 10 : 1;
-                    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-                    onUpdateFramesOffset(targetIds, delta, 0);
-                  }}
-                  className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all outline-none"
-                >
-                  <ChevronRight size={16} />
-                </button>
-                
-                <div />
-                <button 
-                  onClick={(e) => {
-                    const delta = e.shiftKey ? 10 : 1;
-                    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-                    onUpdateFramesOffset(targetIds, 0, delta);
-                  }}
-                  className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all outline-none"
-                >
-                  <ChevronDown size={16} />
-                </button>
-                <div />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Alignment offset is now part of the "Analyze & Align" step. */}
 
         {/* Frame Selection Info & Actions */}
         {(focusedFrameId || selectedIds.size > 0) && (

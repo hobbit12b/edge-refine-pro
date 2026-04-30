@@ -91,7 +91,7 @@ export default function SpriteMaster() {
 
     // Color removal defaults
     pickedColor: undefined,
-    colorTolerance: 12,
+    colorTolerance: 15,
     colorMode: 'connected',
     colorSoftEdge: true,
 
@@ -734,10 +734,18 @@ export default function SpriteMaster() {
     setActiveView(stepId as any);
   };
 
+  // Color removal / edge refinement state (declared early so keyboard handler can reference)
+  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [edgeBusy, setEdgeBusy] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Escape handling
       if (e.key === 'Escape') {
+        if (isPickingColor) {
+          setIsPickingColor(false);
+          return;
+        }
         if (!focusedFrameId) {
           setSelectedIds(new Set());
           setSettings(prev => ({ ...prev, interactionMode: 'none' }));
@@ -799,7 +807,7 @@ export default function SpriteMaster() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAll, deselectAll, deleteSelected]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAll, deselectAll, deleteSelected, isPickingColor]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
@@ -926,11 +934,8 @@ export default function SpriteMaster() {
     }
   };
 
-  // ============================================================
-  // Color removal & edge refinement
-  // ============================================================
-  const [isPickingColor, setIsPickingColor] = useState(false);
-  const [edgeBusy, setEdgeBusy] = useState(false);
+  // (isPickingColor / edgeBusy declared above near keyboard handler)
+
 
   const getTargetIds = useCallback(() => {
     if (selectedIds.size > 0) return Array.from(selectedIds);
@@ -939,7 +944,9 @@ export default function SpriteMaster() {
   }, [selectedIds, focusedFrameId]);
 
   const replaceFrameBlob = useCallback(async (frame: Frame, newBlob: Blob): Promise<Frame> => {
-    if (frame.url?.startsWith('blob:')) URL.revokeObjectURL(frame.url);
+    // NOTE: do NOT revoke frame.url — the previous Frame object (with that url)
+    // is still referenced by undo/redo history snapshots and existing thumbnails.
+    // Revoking here would break Ctrl+Z and turn thumbnails into broken images.
     const newUrl = URL.createObjectURL(newBlob);
     const img = new Image();
     img.src = newUrl;
