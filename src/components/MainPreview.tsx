@@ -374,6 +374,15 @@ export function MainPreview({
                   width: `${currentFrame.originalWidth * (settings.zoom / 100) * visualScale}px`,
                   height: `${currentFrame.originalHeight * (settings.zoom / 100) * visualScale}px`,
                   transform: `translate(calc(-50% + ${(currentFrame.offset?.x || 0) * (settings.zoom / 100) * visualScale}px), calc(-50% + ${(currentFrame.offset?.y || 0) * (settings.zoom / 100) * visualScale}px))`,
+                  cursor: isPickingColor ? 'crosshair' : undefined,
+                  pointerEvents: isPickingColor ? 'auto' : 'none',
+                }}
+                onClick={(e) => {
+                  if (!isPickingColor || !onColorPick) return;
+                  const rect = (e.currentTarget as HTMLImageElement).getBoundingClientRect();
+                  const x = Math.floor(((e.clientX - rect.left) / rect.width) * currentFrame.originalWidth);
+                  const y = Math.floor(((e.clientY - rect.top) / rect.height) * currentFrame.originalHeight);
+                  onColorPick(currentFrame.id, x, y);
                 }}
               />
 
