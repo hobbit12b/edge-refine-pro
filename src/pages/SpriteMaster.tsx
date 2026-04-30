@@ -127,6 +127,16 @@ export default function SpriteMaster() {
     }
   }, [chapters]);
 
+  const {
+    selectedIds,
+    setSelectedIds,
+    focusedFrameId,
+    setFocusedFrameId,
+    toggleSelect,
+    selectAll,
+    deselectAll,
+  } = useFrameSelection(frames);
+
   const activeFrames = useMemo(() => {
     return selectedIds.size > 0 
       ? frames.filter(f => selectedIds.has(f.id))
@@ -422,18 +432,15 @@ export default function SpriteMaster() {
     setRedoStack([]);
   }, [frames, selectedIds]);
 
-  const {
-    selectedIds,
-    setSelectedIds,
-    focusedFrameId,
-    setFocusedFrameId,
-    toggleSelect,
-    selectAll,
-    deselectAll,
-  } = useFrameSelection(frames, {
-    onBeforeSelectAll: pushToHistory,
-    onBeforeDeselectAll: pushToHistory,
-  });
+  const selectAllWithHistory = useCallback(() => {
+    pushToHistory();
+    selectAll();
+  }, [pushToHistory, selectAll]);
+
+  const deselectAllWithHistory = useCallback(() => {
+    pushToHistory();
+    deselectAll();
+  }, [pushToHistory, deselectAll]);
 
   const undo = useCallback(() => {
     if (history.length === 0) return;
@@ -761,10 +768,10 @@ export default function SpriteMaster() {
       if (e.ctrlKey || e.metaKey) {
         if (e.code === 'KeyA') {
           e.preventDefault();
-          selectAll();
+          selectAllWithHistory();
         } else if (e.code === 'KeyD') {
           e.preventDefault();
-          deselectAll();
+          deselectAllWithHistory();
         } else if (isZ) {
           e.preventDefault();
           if (e.shiftKey) redo();
@@ -778,7 +785,7 @@ export default function SpriteMaster() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAll, deselectAll, deleteSelected, isPickingColor]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
@@ -1324,8 +1331,8 @@ export default function SpriteMaster() {
               videoFile={videoFile}
               onToggleSelect={toggleSelect}
               onFocusFrame={setFocusedFrameId}
-              onSelectAll={selectAll}
-              onDeselectAll={deselectAll}
+              onSelectAll={selectAllWithHistory}
+              onDeselectAll={deselectAllWithHistory}
               onUpdateDuration={updateDuration}
               onSettingsChange={setSettings}
               onClearAll={handleStartOver}
