@@ -1,0 +1,978 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  ArrowLeft, 
+  Grid, 
+  ZoomIn, 
+  ZoomOut, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronUp, 
+  ChevronDown,
+  Layers,
+  Plus,
+  Minus,
+  Play,
+  Pause,
+  Undo2,
+  Target,
+  Maximize,
+  Loader2,
+  Save,
+  LayoutList,
+  Link,
+  ListPlus,
+  Edit2,
+  Trash2,
+  HelpCircle,
+  MoveDown,
+  Anchor,
+  RotateCcw,
+  ArrowUpDown,
+  Check
+} from 'lucide-react';
+import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
+import { PlaybackControls } from './PlaybackControls';
+
+interface SpriteAnalyzerProps {
+  frames: Frame[];
+  settings: SpriteSheetSettings;
+  focusedFrameId: string | null;
+  chapters: AnimationChapter[];
+  onChaptersChange: (chapters: AnimationChapter[]) => void;
+  selectedIds: Set<string>;
+  onSelectIds: (ids: Set<string>) => void;
+  onBack: () => void;
+  onSettingsChange: (settings: SpriteSheetSettings) => void;
+  onUpdateFrameOffset: (id: string, x: number, y: number) => void;
+  onUpdateDuration: (id: string, delta: number) => void;
+  onReorderFrames: (startIndex: number, endIndex: number) => void;
+  onFocusFrame: (id: string) => void;
+  onUpdateFramesOffset: (ids: string[], x: number, y: number) => void;
+  onUndo: () => void;
+  canUndo: boolean;
+  visualScale: number;
+  allFramesCount: number;
+  onVisualScaleChange: (scale: number) => void;
+  onScaleSelection: (factor: number) => void;
+  activeView: string;
+  onViewChange: (view: any) => void;
+  onShowExport: () => void;
+  onStartOver: () => void;
+  onReorderChapters: (startIndex: number, endIndex: number) => void;
+  steps: any[];
+}
+
+export function SpriteAnalyzer({
+  frames,
+  settings,
+  focusedFrameId,
+  chapters,
+  onChaptersChange,
+  selectedIds,
+  onBack,
+  onSettingsChange,
+  onUpdateFrameOffset,
+  onUpdateDuration,
+  onReorderFrames,
+  onFocusFrame,
+  onUpdateFramesOffset,
+  onSelectIds,
+  onUndo,
+  canUndo,
+  visualScale,
+  allFramesCount,
+  onVisualScaleChange,
+  activeView,
+  onViewChange,
+  onShowExport,
+  onStartOver,
+  onReorderChapters,
+  steps,
+}: SpriteAnalyzerProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDraggingGuide, setIsDraggingGuide] = useState(false);
+  const [isDraggingGround, setIsDraggingGround] = useState(false);
+  const [isDraggingFrame, setIsDraggingFrame] = useState(false);
+  const [isDraggingPivot, setIsDraggingPivot] = useState(false);
+  const [onionSkinDir, setOnionSkinDir] = useState<-1 | 1>(-1);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editValue, setEditValue] = React.useState('');
+  const timerRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const playbackFrames = useMemo(() => {
+    return selectedIds.size > 0 
+      ? frames.filter(f => selectedIds.has(f.id))
+      : frames;
+  }, [frames, selectedIds]);
+
+  const focusedFrame = frames.find(f => f.id === focusedFrameId) || frames[0] || null;
+  const focusedIndex = focusedFrame ? frames.findIndex(f => f.id === focusedFrame.id) : -1;
+
+  const toggleChapter = (chapterId: string) => {
+    onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
+  };
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditValue(name);
+  };
+
+  const saveEdit = (chapterId: string) => {
+    onChaptersChange(chapters.map(c => {
+      if (c.id === chapterId) {
+        return { ...c, name: editValue };
+      }
+      return c;
+    }));
+    setEditingId(null);
+  };
+
+  const deleteChapter = (chapterId: string) => {
+    onChaptersChange(chapters.filter(c => c.id !== chapterId));
+  };
+
+  const selectChapterFrames = (chapter: AnimationChapter, isMultiSelect: boolean) => {
+    const currentIds = new Set(chapter.frameIds);
+    
+    if (currentIds.size === 0) return;
+
+    if (isMultiSelect) {
+      const next = new Set(selectedIds);
+      const allSelected = currentIds.size > 0 && Array.from(currentIds).every(id => next.has(id));
+      
+      if (allSelected) {
+        currentIds.forEach(id => next.delete(id));
+      } else {
+        currentIds.forEach(id => next.add(id));
+      }
+      onSelectIds(next);
+    } else {
+      onSelectIds(currentIds);
+    }
+
+    const firstFrameId = Array.from(currentIds)[0];
+    if (firstFrameId) onFocusFrame(firstFrameId);
+  };
+
+  const fitToScreen = () => {
+    const frameW = settings.frameSize.width * visualScale;
+    const frameH = settings.frameSize.height * visualScale;
+    const containerW = containerRef.current?.parentElement?.clientWidth || window.innerWidth - 600;
+    const containerH = containerRef.current?.parentElement?.clientHeight || window.innerHeight - 200;
+    
+    if (frameW > 0 && frameH > 0) {
+      const scaleW = (containerW - 100) / frameW;
+      const scaleH = (containerH - 100) / frameH;
+      const fitScale = Math.min(scaleW, scaleH) * 100;
+      onSettingsChange({ ...settings, analyzerZoom: Math.floor(fitScale) });
+    }
+  };
+
+  const handleTogglePlay = () => {
+    if (!isPlaying) {
+      // Start from the focused frame if valid within selection
+      if (focusedFrameId && selectedIds.size > 0) {
+        const idxInPlayback = playbackFrames.findIndex(f => f.id === focusedFrameId);
+        if (idxInPlayback !== -1) {
+          setCurrentIndex(idxInPlayback);
+        } else {
+          setCurrentIndex(0);
+        }
+      } else if (focusedIndex !== -1) {
+        setCurrentIndex(focusedIndex % frames.length);
+      }
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  useEffect(() => {
+    if (isPlaying && playbackFrames.length > 0) {
+      const currentFrame = playbackFrames[currentIndex % playbackFrames.length];
+      const duration = (1000 / settings.fps) * (currentFrame?.durationMultiplier || 1);
+      
+      timerRef.current = window.setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % playbackFrames.length);
+      }, duration);
+    } else {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isPlaying, playbackFrames.length, settings.fps, currentIndex, playbackFrames]);
+
+  const navigateFrame = (delta: number) => {
+    if (playbackFrames.length === 0) return;
+    
+    // Find current index in playback list
+    let currentIdxInPlayback = playbackFrames.findIndex(f => f.id === focusedFrameId);
+    
+    // If not found (e.g. focused frame is not in selection), default to 0
+    if (currentIdxInPlayback === -1) {
+      currentIdxInPlayback = 0;
+    }
+    
+    const nextIndex = (currentIdxInPlayback + delta + playbackFrames.length) % playbackFrames.length;
+    onFocusFrame(playbackFrames[nextIndex].id);
+  };
+
+  const onionSkinFrame = useMemo(() => {
+    if (focusedIndex === -1) return null;
+    const skinIndex = (focusedIndex + onionSkinDir + frames.length) % frames.length;
+    return frames[skinIndex];
+  }, [focusedIndex, onionSkinDir, frames]);
+
+  const toggleGridMode = () => {
+    const modes: ('none' | 'grid' | 'guide')[] = ['none', 'grid', 'guide'];
+    const currentIdx = modes.indexOf(settings.guideMode);
+    const nextMode = modes[(currentIdx + 1) % modes.length];
+    onSettingsChange({ ...settings, guideMode: nextMode });
+  };
+
+  const handleGuideMouseDown = (e: React.MouseEvent) => {
+    if (settings.guideMode === 'guide') {
+      setIsDraggingGuide(true);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'analyzer') {
+      const timer = setTimeout(fitToScreen, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeView, frames.length]);
+
+  const handleFrameMouseDown = (e: React.MouseEvent) => {
+    if (isPlaying) return;
+    setIsDraggingFrame(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePivotMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDraggingPivot(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDraggingGuide && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const relX = ((e.clientX - rect.left) / rect.width) * 100;
+      const relY = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      onSettingsChange({
+        ...settings,
+        guidePosition: { 
+          x: Math.max(-50, Math.min(150, relX)), 
+          y: Math.max(-50, Math.min(150, relY)) 
+        }
+      });
+    } else if (isDraggingGround && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const relY = ((e.clientY - rect.top) / rect.height) * 100;
+      onSettingsChange({
+        ...settings,
+        groundLineY: Math.max(0, Math.min(100, relY))
+      });
+    } else if (isDraggingPivot && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      onSettingsChange({
+        ...settings,
+        customPivot: { 
+          x: Math.max(0, Math.min(1, x)), 
+          y: Math.max(0, Math.min(1, y)) 
+        },
+        anchor: 'custom'
+      });
+    } else if (isDraggingFrame && (focusedFrame || selectedIds.size > 0)) {
+      const deltaX = (e.clientX - dragStart.x) / (settings.analyzerZoom / 100);
+      const deltaY = (e.clientY - dragStart.y) / (settings.analyzerZoom / 100);
+      
+      if (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1) {
+        const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
+        onUpdateFramesOffset(targetIds, Math.round(deltaX), Math.round(deltaY));
+        setDragStart({ x: e.clientX, y: e.clientY });
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDraggingGuide(false);
+    setIsDraggingGround(false);
+    setIsDraggingFrame(false);
+    setIsDraggingPivot(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) return;
+
+      const delta = e.shiftKey ? 10 : 1;
+      
+      const move = (x: number, y: number) => {
+        const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
+        if (targetIds.length > 0) {
+          onUpdateFramesOffset(targetIds, x, y);
+        }
+      };
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          move(-delta, 0);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          move(delta, 0);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          move(0, -delta);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          move(0, delta);
+          break;
+        case ' ': // Toggle play with space
+          e.preventDefault();
+          handleTogglePlay();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds, focusedFrameId, isPlaying, handleTogglePlay, onUpdateFramesOffset]);
+
+  const currentPreviewFrame = isPlaying ? playbackFrames[currentIndex % playbackFrames.length] : focusedFrame;
+
+  return (
+    <div className="flex-1 w-full bg-[#0a0a0a] text-zinc-100 flex flex-col overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Side: Index Panel */}
+        <div className="w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full overflow-hidden">
+          <div className="p-3 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/10">
+            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+              <LayoutList size={12} className="text-purple-500" />
+              Naam geselecteerde frames
+            </h3>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+            {/* Alignment & Guides Section */}
+            <div className="p-2 space-y-3 bg-zinc-900/30 rounded-xl mb-4 border border-zinc-800/50">
+              <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-1">Gidsen & Hulpmiddelen</h4>
+              
+              <div className="grid grid-cols-2 gap-1.5">
+                <button 
+                  onClick={toggleGridMode}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode !== 'none' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                >
+                  <Grid size={14} />
+                  <span className="text-[8px] font-black uppercase">Grid</span>
+                </button>
+                <button 
+                  onClick={() => onSettingsChange({ ...settings, showOnionSkin: !settings.showOnionSkin })}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                >
+                  <Layers size={14} />
+                  <span className="text-[8px] font-black uppercase">Onion</span>
+                </button>
+                <button 
+                  onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showGroundLine ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                >
+                  <ArrowUpDown size={14} />
+                  <span className="text-[8px] font-black uppercase">Grond</span>
+                </button>
+                <button 
+                  onClick={fitToScreen}
+                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-all"
+                >
+                  <Maximize size={14} />
+                  <span className="text-[8px] font-black uppercase">Fit</span>
+                </button>
+              </div>
+
+              {settings.showOnionSkin && (
+                <div className="flex items-center bg-zinc-950 rounded-lg border border-zinc-800 p-0.5">
+                  <button 
+                    onClick={() => setOnionSkinDir(-1)}
+                    className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === -1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  >
+                    PREV
+                  </button>
+                  <button 
+                    onClick={() => setOnionSkinDir(1)}
+                    className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === 1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  >
+                    NEXT
+                  </button>
+                </div>
+              )}
+
+              {/* Pivot punt info */}
+              <div className="px-1 py-2 border-t border-zinc-800/50 mt-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pivot punt</span>
+                </div>
+                <p className="text-[8px] text-zinc-600 leading-relaxed italic">
+                  Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.
+                </p>
+              </div>
+
+              {/* Directional Alignment Controls Moved Here */}
+              <div className="space-y-3 pt-4 border-t border-zinc-800/50 mt-2">
+                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  <div className="flex items-center gap-2">
+                    <Target size={12} className="text-purple-500" />
+                    Fine-tune
+                  </div>
+                  <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="grid grid-cols-3 gap-1">
+                    <div />
+                    <button onClick={(e) => {
+                      const delta = e.shiftKey ? 10 : 1;
+                      focusedFrame && onUpdateFrameOffset(focusedFrame.id, 0, -delta);
+                    }} disabled={!focusedFrame} className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800 outline-none"><ChevronUp size={14} /></button>
+                    <div />
+                    
+                    <button onClick={(e) => {
+                      const delta = e.shiftKey ? 10 : 1;
+                      focusedFrame && onUpdateFrameOffset(focusedFrame.id, -delta, 0);
+                    }} disabled={!focusedFrame} className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800 outline-none"><ChevronLeft size={14} /></button>
+                    <button 
+                      onClick={() => focusedFrame && onUpdateFrameOffset(focusedFrame.id, -(focusedFrame.offset?.x || 0), -(focusedFrame.offset?.y || 0))}
+                      disabled={!focusedFrame || ((focusedFrame.offset?.x || 0) === 0 && (focusedFrame.offset?.y || 0) === 0)}
+                      className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800 hover:text-purple-400 outline-none"
+                    >
+                      <RotateCcw size={12} />
+                    </button>
+                    <button onClick={(e) => {
+                      const delta = e.shiftKey ? 10 : 1;
+                      focusedFrame && onUpdateFrameOffset(focusedFrame.id, delta, 0);
+                    }} disabled={!focusedFrame} className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800 outline-none"><ChevronRight size={14} /></button>
+                    
+                    <div />
+                    <button onClick={(e) => {
+                      const delta = e.shiftKey ? 10 : 1;
+                      focusedFrame && onUpdateFrameOffset(focusedFrame.id, 0, delta);
+                    }} disabled={!focusedFrame} className="w-8 h-8 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-800 outline-none"><ChevronDown size={14} /></button>
+                    <div />
+                  </div>
+                  <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest italic">Shift + klik = 10px</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-zinc-900 mb-2" />
+            {/* All Frames Item */}
+            <div className="group flex items-center gap-1 p-1 bg-zinc-900/50 hover:bg-zinc-800/50 rounded border border-zinc-800 transition-all">
+              <div className="flex items-center gap-2 px-1 py-1 cursor-pointer" onClick={(e) => {
+                e.stopPropagation();
+                if (selectedIds.size === allFramesCount) {
+                  onSelectIds(new Set());
+                } else {
+                  onSelectIds(new Set(frames.map(f => f.id)));
+                }
+              }}>
+                <input 
+                  type="checkbox"
+                  checked={selectedIds.size > 0 && selectedIds.size === allFramesCount}
+                  onChange={() => {}} // Handled by div click
+                  className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 accent-purple-500 cursor-pointer pointer-events-none"
+                />
+              </div>
+              <button 
+                onClick={() => onSelectIds(new Set(frames.map(f => f.id)))}
+                className="flex-1 text-left text-[9px] font-bold text-zinc-300 hover:text-white truncate py-1"
+              >
+                Alle Frames
+                <span className="ml-1 text-[7px] text-zinc-600 font-mono">({allFramesCount})</span>
+              </button>
+            </div>
+
+            <div className="h-px bg-zinc-800 my-1 mx-2" />
+
+            {chapters.map((chapter, idx) => {
+              const allChapterIds = new Set(chapter.frameIds);
+              const isSelected = allChapterIds.size > 0 && Array.from(allChapterIds).every(id => selectedIds.has(id));
+
+              return (
+                <div key={chapter.id} className="space-y-1">
+                  <div className="group flex items-center gap-1 p-1 bg-zinc-900/50 hover:bg-zinc-800/50 rounded border border-zinc-800 transition-all">
+                    <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); idx > 0 && onReorderChapters(idx, idx - 1); }}
+                        className={`p-0.5 rounded hover:bg-zinc-800 transition-colors ${idx === 0 ? 'text-zinc-800 pointer-events-none' : 'text-zinc-300 hover:text-white'}`}
+                        title="Omhoog"
+                      >
+                        <ChevronUp size={12} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); idx < chapters.length - 1 && onReorderChapters(idx, idx + 1); }}
+                        className={`p-0.5 rounded hover:bg-zinc-800 transition-colors ${idx === chapters.length - 1 ? 'text-zinc-800 pointer-events-none' : 'text-zinc-300 hover:text-white'}`}
+                        title="Omlaag"
+                      >
+                        <ChevronDown size={12} />
+                      </button>
+                    </div>
+                    <div className="flex items-center px-1 py-1 cursor-pointer" onClick={(e) => {
+                      e.stopPropagation();
+                      selectChapterFrames(chapter, true);
+                    }}>
+                      <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-600 border-purple-500' : 'border-zinc-700 bg-zinc-950'}`}>
+                        {isSelected && <Check size={10} strokeWidth={4} />}
+                      </div>
+                    </div>
+                    {editingId === chapter.id ? (
+                      <input 
+                        autoFocus
+                        className="flex-1 bg-zinc-950 text-[9px] font-bold px-1 rounded border border-purple-500 outline-none ml-2"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => saveEdit(chapter.id)}
+                        onFocus={(e) => e.target.select()}
+                        onKeyDown={(e) => e.key === 'Enter' && saveEdit(chapter.id)}
+                      />
+                    ) : (
+                      <button 
+                        onClick={(e) => selectChapterFrames(chapter, e.ctrlKey || e.metaKey)}
+                        onDoubleClick={() => startEditing(chapter.id, chapter.name)}
+                        className="flex-1 text-left text-[9px] font-bold text-zinc-300 hover:text-white truncate ml-2"
+                      >
+                        {chapter.name}
+                        <span className="ml-1 text-[7px] text-zinc-600 font-mono">
+                          ({allChapterIds.size})
+                        </span>
+                      </button>
+                    )}
+
+                    <div className="hidden group-hover:flex items-center gap-0.5">
+                      <button onClick={() => startEditing(chapter.id, chapter.name)} className="p-0.5 text-zinc-500 hover:text-blue-400"><Edit2 size={8} /></button>
+                      <button onClick={() => deleteChapter(chapter.id)} className="p-0.5 text-zinc-500 hover:text-red-400"><Trash2 size={8} /></button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {chapters.length === 0 && (
+              <div className="text-[9px] text-zinc-700 italic p-4 text-center">Nog geen hoofdstukken.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Preview */}
+        <div 
+          className="flex-1 relative overflow-hidden bg-[#050505] checkerboard-dark flex items-center justify-center p-4 md:p-8"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          <div 
+            ref={containerRef}
+            className="relative transition-transform duration-200 shadow-2xl flex-shrink-0"
+            style={{ 
+              transform: `scale(${settings.analyzerZoom / 100})`,
+              width: settings.frameSize.width * visualScale,
+              height: settings.frameSize.height * visualScale,
+              transformOrigin: 'center center'
+            }}
+          >
+              {settings.showGroundLine && (
+                <div 
+                  className="absolute left-[-20%] right-[-20%] h-px bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] z-[45] pointer-events-all"
+                  style={{ top: `${settings.groundLineY}%`, cursor: isDraggingGround ? 'grabbing' : 'ns-resize' }}
+                  onMouseDown={(e) => { e.stopPropagation(); setIsDraggingGround(true); }}
+                >
+                  <div className="absolute right-0 -top-6 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded flex items-center gap-2">
+                    <ArrowUpDown size={10} /> GRONDLIJN
+                  </div>
+                </div>
+              )}
+
+                {settings.guideMode === 'grid' && (
+                <div className="absolute top-[-200%] left-[-200%] right-[-200%] bottom-[-200%] pointer-events-none z-40">
+                  <div className="absolute border-2 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
+                    style={{ width: settings.frameSize.width * visualScale, height: settings.frameSize.height * visualScale, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                  />
+                  <div 
+                    className="absolute inset-0 opacity-20" 
+                    style={{ 
+                      backgroundImage: 'linear-gradient(to right, #a855f7 1px, transparent 1px), linear-gradient(to bottom, #a855f7 1px, transparent 1px)', 
+                      backgroundSize: `${32 * visualScale}px ${32 * visualScale}px` 
+                    }} 
+                  />
+                </div>
+              )}
+
+              {settings.guideMode === 'guide' && (
+                <div 
+                  className="absolute top-[-50%] left-[-50%] right-[-50%] bottom-[-50%] pointer-events-none z-30"
+                  onMouseDown={handleGuideMouseDown}
+                  style={{ cursor: isDraggingGuide ? 'grabbing' : 'grab', pointerEvents: 'all' }}
+                >
+                  <div 
+                    className="absolute top-0 bottom-0 w-px bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.6)]"
+                    style={{ left: `${25 + settings.guidePosition.x / 2}%` }}
+                  />
+                  <div 
+                    className="absolute left-0 right-0 h-px bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.6)]"
+                    style={{ top: `${25 + settings.guidePosition.y / 2}%` }}
+                  />
+                  <div className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
+                    style={{ left: `${25 + settings.guidePosition.x / 2}%`, top: `${25 + settings.guidePosition.y / 2}%` }}
+                  >
+                    <div className="w-4 h-4 bg-purple-500 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.8)] border-2 border-white" />
+                  </div>
+                </div>
+              )}
+
+              <div 
+                onMouseDown={handleFrameMouseDown}
+                className={`relative w-full h-full border border-zinc-700/50 ${isDraggingFrame ? 'cursor-grabbing' : 'cursor-grab'}`}
+              >
+                {settings.showOnionSkin && onionSkinFrame?.url && !isPlaying && (
+                  <img
+                    src={onionSkinFrame.url}
+                    alt="Onion Skin"
+                    className="absolute left-1/2 top-1/2 select-none pointer-events-none grayscale sepia opacity-50 max-w-none max-h-none"
+                    style={{
+                      width: `${onionSkinFrame.originalWidth * visualScale}px`,
+                      height: `${onionSkinFrame.originalHeight * visualScale}px`,
+                      transform: `translate(calc(-50% + ${onionSkinFrame.offset.x * visualScale}px), calc(-50% + ${onionSkinFrame.offset.y * visualScale}px))`,
+                      imageRendering: 'pixelated',
+                      zIndex: 1,
+                    }}
+                  />
+                )}
+
+                  {currentPreviewFrame?.url && (
+                    <img
+                      src={currentPreviewFrame.url}
+                      alt="Preview"
+                      className="absolute left-1/2 top-1/2 select-none max-w-none max-h-none"
+                      style={{
+                        width: `${currentPreviewFrame.originalWidth * visualScale}px`,
+                        height: `${currentPreviewFrame.originalHeight * visualScale}px`,
+                        transform: `translate(calc(-50% + ${(currentPreviewFrame.offset?.x || 0) * visualScale}px), calc(-50% + ${(currentPreviewFrame.offset?.y || 0) * visualScale}px))`,
+                        imageRendering: 'pixelated',
+                        zIndex: 2,
+                        opacity: settings.showOnionSkin ? settings.onionOpacity / 100 : 1
+                      }}
+                    />
+                  )}
+
+                  {/* Canvas Bound Overlay for Analyzer */}
+                  <div 
+                    className="absolute border-2 border-red-500/50 pointer-events-none z-50 shadow-[0_0_0_10000px_rgba(0,0,0,0.5)]"
+                    style={{
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: `${settings.frameSize.width * visualScale}px`,
+                      height: `${settings.frameSize.height * visualScale}px`,
+                    }}
+                  >
+                    <div className="absolute -top-6 left-0 bg-red-500/80 text-[10px] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                      Canvas Kader (Crop Zone)
+                    </div>
+                  </div>
+              </div>
+
+              {!isPlaying && (
+                <div 
+                  onMouseDown={handlePivotMouseDown}
+                  className={`absolute z-[100] w-10 h-10 -ml-5 -mt-5 flex items-center justify-center cursor-move group/pivot-handle`}
+                  style={{
+                    left: (settings.customPivot?.x || 0.5) * 100 + '%',
+                    top: (settings.customPivot?.y || 0.5) * 100 + '%'
+                  }}
+                >
+                  <div className="w-5 h-5 -ml-2.5 -mt-2.5 border-2 border-white rounded-full bg-purple-600 shadow-[0_0_20px_rgba(168,85,247,0.6)] flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Playback Controls Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-800 flex items-center justify-center z-[60]">
+            <PlaybackControls 
+              isPlaying={isPlaying}
+              onTogglePlay={handleTogglePlay}
+              onStepBack={() => { setIsPlaying(false); navigateFrame(-1); }}
+              onStepForward={() => { setIsPlaying(false); navigateFrame(1); }}
+              fps={settings.fps}
+              onFpsChange={(val) => onSettingsChange({ ...settings, fps: val })}
+              zoom={settings.analyzerZoom}
+              onZoomChange={(val) => onSettingsChange({ ...settings, analyzerZoom: val })}
+              onFitToScreen={fitToScreen}
+              currentIndex={isPlaying ? (currentIndex % playbackFrames.length) : (focusedIndex !== -1 ? focusedIndex : 0)}
+              totalFrames={isPlaying ? playbackFrames.length : frames.length}
+              className="w-full max-w-5xl !bg-transparent !border-none !shadow-none"
+            />
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/20 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              <span>Spritesheet Grid ({selectedIds.size}/{frames.length})</span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="space-y-8">
+                {chapters.map((chapter) => {
+                  const chapterFrames = frames.filter(f => chapter.frameIds.includes(f.id));
+                  if (chapterFrames.length === 0) return null;
+                  
+                  return (
+                    <div key={chapter.id} className="space-y-2">
+                      <div className="flex items-center gap-2 px-1">
+                        <div className="w-1 h-3 rounded-full" style={{ backgroundColor: chapter.color || '#a855f7' }} />
+                        <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{chapter.name}</span>
+                      </div>
+                      <div 
+                        className="grid" 
+                        style={{ 
+                          gridTemplateColumns: `repeat(auto-fill, minmax(${settings.frameGridSize + 8}px, 1fr))`,
+                          gap: '0px'
+                        }}
+                      >
+                        {chapterFrames.map((frame) => {
+                          const isFocused = focusedFrameId === frame.id;
+                          const isSelected = selectedIds.has(frame.id);
+                          const isPlayingHighlight = isPlaying && playbackFrames[currentIndex % playbackFrames.length]?.id === frame.id;
+
+                          return (
+                            <div
+                              key={frame.id}
+                              style={{ 
+                                width: settings.frameGridSize, 
+                                height: settings.frameGridSize,
+                                padding: '4px',
+                                position: 'relative'
+                              }}
+                            >
+                              <div
+                                className={`
+                                  relative w-full h-full rounded-xl border-2 transition-all group cursor-default overflow-hidden shadow-lg p-1
+                                  ${isPlayingHighlight
+                                    ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
+                                    : isFocused 
+                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
+                                      : isSelected 
+                                        ? 'border-purple-600 bg-purple-600/10 opacity-100' 
+                                        : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
+                                `}
+                                style={{
+                                  borderColor: isFocused ? '#ffffff' : (isSelected && chapter?.color ? chapter.color : undefined),
+                                  backgroundColor: (isSelected || isFocused) && chapter?.color ? `${chapter.color}1A` : undefined
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsPlaying(false);
+                                  onFocusFrame(frame.id);
+                                }}
+                              >
+                                <div 
+                                  className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
+                                    isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
+                                  }`}
+                                  style={{ 
+                                    backgroundColor: isFocused 
+                                      ? (chapter?.color || '#9333ea') 
+                                      : chapter?.color 
+                                        ? chapter.color 
+                                        : isSelected 
+                                          ? '#7c3aed' 
+                                          : 'rgba(0,0,0,0.6)' 
+                                  }}
+                                >
+                                  {frame.index + 1}
+                                </div>
+                                <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">
+                                  {frame?.url && (
+                                    <img
+                                      src={frame.url}
+                                      alt={`Frame ${frame.index}`}
+                                      draggable="false"
+                                      className="w-full h-full object-contain checkerboard pointer-events-none select-none"
+                                    />
+                                  )}
+                                </div>
+                                {frame.durationMultiplier > 1 && (
+                                  <div className="absolute top-1 right-1 px-1 bg-purple-600 text-white text-[6px] font-bold rounded shadow-sm z-30">
+                                    {frame.durationMultiplier}x
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Frames without chapter */}
+                {(() => {
+                  const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
+                  const orphanFrames = frames.filter(f => !chapterFrameIds.has(f.id));
+                  if (orphanFrames.length === 0) return null;
+
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 px-1">
+                        <div className="w-1 h-3 rounded-full bg-zinc-700" />
+                        <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Ongecategoriseerd</span>
+                      </div>
+                      <div 
+                        className="grid" 
+                        style={{ 
+                          gridTemplateColumns: `repeat(auto-fill, minmax(${settings.frameGridSize + 8}px, 1fr))`,
+                          gap: '0px'
+                        }}
+                      >
+                        {orphanFrames.map((frame) => {
+                          const isFocused = focusedFrameId === frame.id;
+                          const isSelected = selectedIds.has(frame.id);
+                          const isPlayingHighlight = isPlaying && playbackFrames[currentIndex % playbackFrames.length]?.id === frame.id;
+
+                          return (
+                            <div
+                              key={frame.id}
+                              style={{ 
+                                width: settings.frameGridSize, 
+                                height: settings.frameGridSize,
+                                padding: '4px',
+                                position: 'relative'
+                              }}
+                            >
+                              <div
+                                className={`
+                                  relative w-full h-full rounded-xl border-2 transition-all group cursor-default overflow-hidden shadow-lg p-1
+                                  ${isPlayingHighlight
+                                    ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
+                                    : isFocused 
+                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
+                                      : isSelected 
+                                        ? 'border-purple-600 bg-purple-600/10 opacity-100' 
+                                        : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
+                                `}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsPlaying(false);
+                                  onFocusFrame(frame.id);
+                                }}
+                              >
+                                <div 
+                                  className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
+                                    isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
+                                  }`}
+                                  style={{ 
+                                    backgroundColor: isFocused 
+                                      ? '#9333ea' 
+                                      : isSelected 
+                                        ? '#7c3aed' 
+                                        : 'rgba(0,0,0,0.6)' 
+                                  }}
+                                >
+                                  {frame.index + 1}
+                                </div>
+                                <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">
+                                  {frame?.url && (
+                                    <img
+                                      src={frame.url}
+                                      alt={`Frame ${frame.index}`}
+                                      draggable="false"
+                                      className="w-full h-full object-contain checkerboard pointer-events-none select-none"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Frame Timing Controls (Mirrored from RightSidebar) */}
+          {(focusedFrameId || selectedIds.size > 0) && (
+            <div className="p-4 bg-zinc-900/40 border-t border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  Duration Multiplier
+                </h3>
+                <span className="text-[10px] text-purple-400 font-mono">
+                  {focusedFrameId ? 'Frame focus' : `${selectedIds.size} selected`}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                <div className="text-[8px] text-zinc-500 uppercase tracking-widest">Relative Speed</div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      if (focusedFrameId) onUpdateDuration(focusedFrameId, -0.5);
+                      else selectedIds.forEach(sid => onUpdateDuration(sid, -0.5));
+                    }}
+                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="text-xs font-mono text-white min-w-[3ch] text-center">
+                    {focusedFrame ? focusedFrame.durationMultiplier.toFixed(1) : '1.0'}x
+                  </span>
+                  <button 
+                    onClick={() => {
+                      if (focusedFrameId) onUpdateDuration(focusedFrameId, 0.5);
+                      else selectedIds.forEach(sid => onUpdateDuration(sid, 0.5));
+                    }}
+                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-all"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Zoom Controls */}
+          <div className="p-4 border-t border-zinc-800 bg-zinc-950 space-y-6 flex-shrink-0">
+            <div className="space-y-2">
+              <div className="flex justify-between items-end text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                <span>Thumbnail Grootte</span>
+                <span className="text-zinc-300 font-mono">{settings.frameGridSize}px</span>
+              </div>
+              <input
+                type="range"
+                min="40"
+                max="160"
+                value={settings.frameGridSize}
+                onChange={(e) => onSettingsChange({ ...settings, frameGridSize: parseInt(e.target.value) })}
+                className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
