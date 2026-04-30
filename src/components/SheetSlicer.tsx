@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Scissors, Grid, LayoutGrid, ArrowRight, X, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Frame } from '../types';
 
 interface SheetSlicerProps {

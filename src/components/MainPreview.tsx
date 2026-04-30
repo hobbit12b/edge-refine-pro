@@ -15,7 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FrameManualEditor } from './FrameManualEditor';
 import { PlaybackControls } from './PlaybackControls';
 
