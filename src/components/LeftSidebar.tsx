@@ -470,57 +470,150 @@ export function LeftSidebar({
           )}
         </section>
 
-        {/* Manual Touch-up tools */}
+        {/* Color removal */}
+        <section className="space-y-3 pt-3 border-t border-zinc-900">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kleur verwijderen</h3>
+            {settings.pickedColor && (
+              <span
+                className="w-5 h-5 rounded border border-zinc-700"
+                style={{ backgroundColor: settings.pickedColor }}
+                title={settings.pickedColor}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onPickColor}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
+                isPickingColor
+                  ? 'bg-cyan-600 border-cyan-500 text-white animate-pulse'
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-900'
+              }`}
+              title="Klik daarna op een achtergrondpixel in de preview"
+            >
+              <Pencil size={12} />
+              <span>{isPickingColor ? 'Kies pixel…' : 'Pipet'}</span>
+            </button>
+            <input
+              type="color"
+              value={settings.pickedColor || '#000000'}
+              onChange={(e) => updateSetting('pickedColor', e.target.value)}
+              className="w-full h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer"
+              title="Of kies handmatig"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] font-bold text-zinc-500 uppercase">
+              <span>Tolerantie</span>
+              <span className="text-purple-400 font-mono">{settings.colorTolerance}</span>
+            </div>
+            <input
+              type="range" min={0} max={100} value={settings.colorTolerance}
+              onChange={(e) => updateSetting('colorTolerance', parseInt(e.target.value))}
+              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+            <button
+              onClick={() => updateSetting('colorMode', 'connected')}
+              className={`flex-1 py-1.5 rounded text-[9px] font-bold uppercase ${settings.colorMode === 'connected' ? 'bg-purple-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >Vanaf rand</button>
+            <button
+              onClick={() => updateSetting('colorMode', 'all')}
+              className={`flex-1 py-1.5 rounded text-[9px] font-bold uppercase ${settings.colorMode === 'all' ? 'bg-purple-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >Alle pixels</button>
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={settings.colorSoftEdge}
+              onChange={(e) => updateSetting('colorSoftEdge', e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-zinc-800 bg-zinc-900 text-purple-500 focus:ring-purple-500"
+            />
+            <span className="text-[10px] font-medium text-zinc-400 group-hover:text-zinc-200">Zachte rand (anti-alias)</span>
+          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onApplyColorRemoval}
+              disabled={removalState.active || !settings.pickedColor || frames.length === 0}
+              className="py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-black uppercase tracking-tight disabled:opacity-40 disabled:grayscale active:scale-95"
+            >
+              Toepassen
+            </button>
+            <button
+              onClick={onAutoColorRemoval}
+              disabled={removalState.active || frames.length === 0}
+              className="py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-[10px] font-black uppercase tracking-tight hover:border-purple-500 disabled:opacity-40"
+              title="Gemini bepaalt kleur + tolerantie per frame en past chroma-key toe"
+            >
+              Auto (AI)
+            </button>
+          </div>
+          <p className="text-[8px] text-zinc-600 leading-tight">
+            Werkt op {selectedIds.size > 0 ? `${selectedIds.size} geselecteerde` : focusedFrameId ? '1 actief' : '0'} frame{selectedIds.size === 1 || (!selectedIds.size && focusedFrameId) ? '' : 's'}.
+          </p>
+        </section>
+
+        {/* Edge refine */}
+        <section className="space-y-3 pt-3 border-t border-zinc-900">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Rand verfijnen</h3>
+            <span className="text-[9px] font-mono text-purple-400">{settings.edgeStrength}px</span>
+          </div>
+          <input
+            type="range" min={1} max={3} value={settings.edgeStrength}
+            onChange={(e) => updateSetting('edgeStrength', parseInt(e.target.value))}
+            className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onEdgeOp('erode')}
+              disabled={edgeBusy || frames.length === 0}
+              className="py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-[10px] font-bold uppercase hover:border-purple-500 disabled:opacity-40"
+              title="Vreet vuile achtergrondrandjes weg"
+            >
+              Rand krimpen
+            </button>
+            <button
+              onClick={() => onEdgeOp('dilate')}
+              disabled={edgeBusy || frames.length === 0}
+              className="py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-[10px] font-bold uppercase hover:border-purple-500 disabled:opacity-40"
+              title="Herstelt te agressief weggesneden sprites"
+            >
+              Rand uitbreiden
+            </button>
+            <button
+              onClick={() => onEdgeOp('feather')}
+              disabled={edgeBusy || frames.length === 0}
+              className="py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-[10px] font-bold uppercase hover:border-purple-500 disabled:opacity-40"
+              title="Verzacht alpha rand (niet voor pixelart)"
+            >
+              Rand verzachten
+            </button>
+            <button
+              onClick={() => onEdgeOp('decontaminate')}
+              disabled={edgeBusy || frames.length === 0 || !settings.pickedColor}
+              className="py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-[10px] font-bold uppercase hover:border-purple-500 disabled:opacity-40"
+              title="Verwijdert achtergrondkleurzweem uit randpixels (kies eerst kleur)"
+            >
+              Halo weg
+            </button>
+          </div>
+          <p className="text-[8px] text-zinc-600 leading-tight">Werkt op selectie. Stapelbaar via Undo/Redo.</p>
+        </section>
+
+        {/* Manual touch-up moved to editor */}
         {focusedFrameId && (
-          <section className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                Handmatige Bijwerking
-              </h3>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                onClick={() => updateSetting('interactionMode', 'brush')}
-                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${settings.interactionMode === 'brush' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
-                title="Penseel Tool"
-              >
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
-                  <Pencil size={14} className={settings.interactionMode === 'brush' ? 'text-white' : 'text-zinc-500'} />
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-tighter">Penseel</span>
-              </button>
-              <button 
-                onClick={() => updateSetting('interactionMode', 'lasso')}
-                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${settings.interactionMode === 'lasso' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
-                title="Lasso Tool"
-              >
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
-                  <div className={`w-4 h-4 border-2 border-dashed rounded-full ${settings.interactionMode === 'lasso' ? 'border-white' : 'border-zinc-500'}`} />
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-tighter">Lasso</span>
-              </button>
-              <button 
-                onClick={() => updateSetting('interactionMode', 'poly-lasso')}
-                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${settings.interactionMode === 'poly-lasso' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
-                title="Veelhoek Lasso Tool"
-              >
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
-                  <Scissors size={14} className={settings.interactionMode === 'poly-lasso' ? 'text-white' : 'text-zinc-500'} />
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-tighter">Poly Lasso</span>
-              </button>
-              <button 
-                onClick={() => updateSetting('interactionMode', 'magnetic-lasso')}
-                className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${settings.interactionMode === 'magnetic-lasso' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
-                title="Magnetische Lasso Tool"
-              >
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
-                  <Magnet size={14} className={settings.interactionMode === 'magnetic-lasso' ? 'text-white' : 'text-zinc-500'} />
-                </div>
-                <span className="text-[9px] font-bold uppercase tracking-tighter">Magnetic</span>
-              </button>
-            </div>
+          <section className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
+            <p className="text-[10px] text-zinc-400 leading-snug">
+              <span className="text-purple-400 font-bold">Handmatige tools</span> (Penseel, Lasso, Gum…) staan nu in de bovenbalk van de editor →
+            </p>
           </section>
         )}
 
