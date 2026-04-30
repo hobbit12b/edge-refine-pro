@@ -91,7 +91,7 @@ export default function SpriteMaster() {
 
     // Color removal defaults
     pickedColor: undefined,
-    colorTolerance: 12,
+    colorTolerance: 15,
     colorMode: 'connected',
     colorSoftEdge: true,
 
@@ -939,7 +939,9 @@ export default function SpriteMaster() {
   }, [selectedIds, focusedFrameId]);
 
   const replaceFrameBlob = useCallback(async (frame: Frame, newBlob: Blob): Promise<Frame> => {
-    if (frame.url?.startsWith('blob:')) URL.revokeObjectURL(frame.url);
+    // NOTE: do NOT revoke frame.url — the previous Frame object (with that url)
+    // is still referenced by undo/redo history snapshots and existing thumbnails.
+    // Revoking here would break Ctrl+Z and turn thumbnails into broken images.
     const newUrl = URL.createObjectURL(newBlob);
     const img = new Image();
     img.src = newUrl;
