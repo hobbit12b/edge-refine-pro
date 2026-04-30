@@ -77,6 +77,12 @@ export function LeftSidebar({
   onLoadProject,
   onAddFrames,
   onReorderChapters,
+  onPickColor,
+  onApplyColorRemoval,
+  onAutoColorRemoval,
+  isPickingColor,
+  onEdgeOp,
+  edgeBusy,
 }: LeftSidebarProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState('');
