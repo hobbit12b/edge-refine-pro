@@ -926,7 +926,146 @@ export default function SpriteMaster() {
     }
   };
 
-  const analyzerFrames = useMemo(() => frames.filter(f => selectedIds.has(f.id)), [frames, selectedIds]);
+  // ============================================================
+  // Color removal & edge refinement
+  // ============================================================
+  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [edgeBusy, setEdgeBusy] = useState(false);
+
+  const getTargetIds = useCallback(() => {
+    if (selectedIds.size > 0) return Array.from(selectedIds);
+    if (focusedFrameId) return [focusedFrameId];
+    return [];
+  }, [selectedIds, focusedFrameId]);
+
+  const replaceFrameBlob = useCallback(async (frame: Frame, newBlob: Blob): Promise<Frame> => {
+    if (frame.url?.startsWith('blob:')) URL.revokeObjectURL(frame.url);
+    const newUrl = URL.createObjectURL(newBlob);
+    const img = new Image();
+    img.src = newUrl;
+    await new Promise(r => { img.onload = r; });
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const cx = c.getContext('2d');
+    let trimmedBox = frame.trimmedBox;
+    if (cx) {
+      cx.drawImage(img, 0, 0);
+      trimmedBox = getTrimmedBox(cx.getImageData(0, 0, c.width, c.height));
+    }
+    return { ...frame, blob: newBlob, url: newUrl, trimmedBox };
+  }, []);
+
+  const handlePickColor = () => {
+    if (!focusedFrameId && frames.length === 0) return;
+    setIsPickingColor(true);
+  };
+
+  // Triggered by MainPreview when user clicks a pixel while picking is active
+  const handleColorPicked = useCallback(async (frameId: string, x: number, y: number) => {
+    const frame = frames.find(f => f.id === frameId);
+    if (!frame) { setIsPickingColor(false); return; }
+    try {
+      const { pickPixelColor } = await import('@/services/imageProcessing');
+      const hex = await pickPixelColor(frame.blob, x, y);
+      setSettings(prev => ({ ...prev, pickedColor: hex }));
+    } catch (e) { console.error(e); }
+    setIsPickingColor(false);
+  }, [frames]);
+
+  const handleApplyColorRemoval = async () => {
+    const ids = getTargetIds();
+    if (ids.length === 0 || !settings.pickedColor) return;
+    pushToHistory();
+    setRemovalState({ active: true, current: 0, total: ids.length, progress: 0 });
+    try {
+      const { removeColorFromBlob } = await import('@/services/imageProcessing');
+      const next = [...frames];
+      for (let i = 0; i < ids.length; i++) {
+        const idx = next.findIndex(f => f.id === ids[i]);
+        if (idx === -1) continue;
+        const newBlob = await removeColorFromBlob(
+          next[idx].blob,
+          settings.pickedColor!,
+          settings.colorTolerance,
+          settings.colorMode,
+          settings.colorSoftEdge,
+        );
+        next[idx] = await replaceFrameBlob(next[idx], newBlob);
+        setFrames([...next]);
+        setRemovalState(prev => ({ ...prev, current: i + 1, progress: (i + 1) / ids.length }));
+        await new Promise(r => setTimeout(r, 0));
+      }
+    } catch (e) {
+      console.error('Color removal failed:', e);
+    } finally {
+      await new Promise(r => setTimeout(r, 400));
+      setRemovalState(prev => ({ ...prev, active: false }));
+    }
+  };
+
+  const handleAutoColorRemoval = async () => {
+    const ids = getTargetIds();
+    if (ids.length === 0) return;
+    pushToHistory();
+    setRemovalState({ active: true, current: 0, total: ids.length, progress: 0 });
+    try {
+      const { removeColorFromBlob } = await import('@/services/imageProcessing');
+      const { detectSubject } = await import('@/services/geminiService');
+      const next = [...frames];
+      for (let i = 0; i < ids.length; i++) {
+        const idx = next.findIndex(f => f.id === ids[i]);
+        if (idx === -1) continue;
+        const detection = await detectSubject(next[idx]);
+        const newBlob = await removeColorFromBlob(
+          next[idx].blob,
+          detection.chromaColor,
+          Math.max(5, Math.min(50, detection.tolerance)),
+          'connected',
+          true,
+        );
+        next[idx] = await replaceFrameBlob(next[idx], newBlob);
+        setFrames([...next]);
+        // Stash the last detected color so the user sees what AI picked
+        setSettings(prev => ({ ...prev, pickedColor: detection.chromaColor }));
+        setRemovalState(prev => ({ ...prev, current: i + 1, progress: (i + 1) / ids.length }));
+      }
+    } catch (e) {
+      console.error('Auto color removal failed:', e);
+    } finally {
+      await new Promise(r => setTimeout(r, 400));
+      setRemovalState(prev => ({ ...prev, active: false }));
+    }
+  };
+
+  const handleEdgeOp = async (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => {
+    const ids = getTargetIds();
+    if (ids.length === 0) return;
+    pushToHistory();
+    setEdgeBusy(true);
+    try {
+      const mod = await import('@/services/imageProcessing');
+      const next = [...frames];
+      for (const id of ids) {
+        const idx = next.findIndex(f => f.id === id);
+        if (idx === -1) continue;
+        let blob = next[idx].blob;
+        if (op === 'erode') blob = await mod.erodeAlpha(blob, settings.edgeStrength);
+        else if (op === 'dilate') blob = await mod.dilateAlpha(blob, settings.edgeStrength);
+        else if (op === 'feather') blob = await mod.featherAlpha(blob, settings.edgeStrength);
+        else if (op === 'decontaminate') {
+          if (!settings.pickedColor) continue;
+          blob = await mod.decontaminateColors(blob, settings.pickedColor);
+        }
+        next[idx] = await replaceFrameBlob(next[idx], blob);
+        setFrames([...next]);
+      }
+    } catch (e) {
+      console.error('Edge op failed:', e);
+    } finally {
+      setEdgeBusy(false);
+    }
+  };
+
 
   const stats = useMemo(() => {
     if (frames.length === 0) return null;
