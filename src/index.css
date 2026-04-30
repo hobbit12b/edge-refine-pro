@@ -1,8 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* SpriteMaster shared styles */
+.checkerboard {
+  background-image:
+    linear-gradient(45deg, #0e0e11 25%, transparent 25%, transparent 75%, #0e0e11 75%),
+    linear-gradient(45deg, #0e0e11 25%, transparent 25%, transparent 75%, #0e0e11 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  background-color: #050505;
+}
+.checkerboard-small {
+  background-image:
+    linear-gradient(45deg, #2a2a2e 25%, transparent 25%, transparent 75%, #2a2a2e 75%),
+    linear-gradient(45deg, #2a2a2e 25%, transparent 25%, transparent 75%, #2a2a2e 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  background-color: #1a1a1d;
+}
+.checkerboard-dark {
+  background-image:
+    linear-gradient(45deg, #070709 25%, transparent 25%, transparent 75%, #070709 75%),
+    linear-gradient(45deg, #070709 25%, transparent 25%, transparent 75%, #070709 75%);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+  background-color: #030303;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(24,24,27,0.5); }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(63,63,70); border-radius: 9999px;
+  border: 2px solid transparent; background-clip: padding-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgb(82,82,91); border: 2px solid transparent; background-clip: padding-box; }
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
 All colors MUST be HSL.
 */
 
