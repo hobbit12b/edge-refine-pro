@@ -1332,6 +1332,8 @@ export default function SpriteMaster() {
               currentIndex={editorCurrentIndex}
               setCurrentIndex={setEditorCurrentIndex}
               steps={steps}
+              isPickingColor={isPickingColor}
+              onColorPick={handleColorPicked}
             />
             
             <RightSidebar 
