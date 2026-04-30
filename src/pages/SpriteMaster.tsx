@@ -12,7 +12,7 @@ import { extractFrames, findDuplicateFrames, autoAlignFrames, getTrimmedBox } fr
 import { removeBackground } from './services/backgroundRemovalService';
 import { TopHeader } from './components/TopHeader';
 import { Loader2, Download, X, Scissors, Sparkles, FolderPlus, Save, FileUp, Gamepad2, Repeat, Target, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 
 export default function SpriteMaster() {
