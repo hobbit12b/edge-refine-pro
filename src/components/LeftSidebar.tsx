@@ -47,6 +47,14 @@ interface LeftSidebarProps {
   onLoadProject: (file: File) => void;
   onAddFrames: () => void;
   onReorderChapters: (startIndex: number, endIndex: number) => void;
+  // Color removal
+  onPickColor: () => void;
+  onApplyColorRemoval: () => void;
+  onAutoColorRemoval: () => void;
+  isPickingColor: boolean;
+  // Edge refine
+  onEdgeOp: (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => void;
+  edgeBusy: boolean;
 }
 
 export function LeftSidebar({ 
