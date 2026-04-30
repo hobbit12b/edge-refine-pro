@@ -73,12 +73,26 @@ export interface SpriteSheetSettings {
   groundLineY: number;
   showOnionSkin: boolean;
   onionOpacity: number;
-  interactionMode: 'none' | 'brush' | 'lasso' | 'poly-lasso' | 'magnetic-lasso';
+  interactionMode: 'none' | 'brush' | 'lasso' | 'poly-lasso' | 'magnetic-lasso' | 'eyedropper';
   brushSize: number;
   brushMode: 'erase' | 'restore';
   antiAlias: boolean;
   showGhost: boolean;
   checkerboardMode: 'transparent' | 'red' | 'green' | 'gray' | 'white' | 'black';
+
+  // Legacy / pro chroma controls (kept for backwards-compat with existing UI)
+  chromaTolerance: number;
+  edgeChromaPasses: number;
+  edgeSmooth: number;
+
+  // Color-based background removal
+  pickedColor?: string;        // hex #RRGGBB
+  colorTolerance: number;      // 0-100
+  colorMode: 'connected' | 'all';
+  colorSoftEdge: boolean;
+
+  // Edge refinement
+  edgeStrength: number;        // 1-3 px shared by erode/dilate/feather
 }
 
 export interface Manifest {
