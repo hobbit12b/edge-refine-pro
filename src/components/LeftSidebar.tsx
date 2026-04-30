@@ -398,7 +398,7 @@ export function LeftSidebar({
             ) : (
               <div className="flex items-center justify-center gap-2">
                 <Sparkles size={14} className="text-purple-400" />
-                <span>BRIA BG REMOVER</span>
+                <span>AI BG REMOVER (ISNet)</span>
               </div>
             )}
           </button>
