@@ -1066,6 +1066,7 @@ export default function SpriteMaster() {
     }
   };
 
+  const analyzerFrames = useMemo(() => frames.filter(f => selectedIds.has(f.id)), [frames, selectedIds]);
 
   const stats = useMemo(() => {
     if (frames.length === 0) return null;
