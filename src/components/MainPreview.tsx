@@ -43,6 +43,8 @@ interface MainPreviewProps {
   currentIndex: number;
   setCurrentIndex: (idx: number) => void;
   steps: any[];
+  isPickingColor?: boolean;
+  onColorPick?: (frameId: string, x: number, y: number) => void;
 }
 
 export function MainPreview({ 
