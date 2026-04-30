@@ -522,6 +522,29 @@ export function FrameManualEditor({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 shadow-xl z-20">
         <div className="flex items-center gap-3">
+          {/* Selection tools */}
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+            {([
+              { mode: 'brush', label: 'Penseel', Icon: Pencil, title: 'Penseel (B)' },
+              { mode: 'lasso', label: 'Lasso', Icon: Lasso, title: 'Lasso (L)' },
+              { mode: 'poly-lasso', label: 'Poly', Icon: LassoSelect, title: 'Veelhoek Lasso (P)' },
+              { mode: 'magnetic-lasso', label: 'Magnetic', Icon: Magnet, title: 'Magnetische Lasso (M)' },
+            ] as const).map(({ mode, label, Icon, title }) => (
+              <button
+                key={mode}
+                onClick={() => onSettingsChange({ ...settings, interactionMode: settings.interactionMode === mode ? 'none' : mode })}
+                className={`p-1.5 rounded-lg flex items-center gap-1.5 px-3 transition-all ${settings.interactionMode === mode ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                title={title}
+              >
+                <Icon size={14} />
+                <span className="text-[10px] font-black uppercase tracking-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="h-8 w-px bg-zinc-800 mx-1" />
+
+          {/* Brush mode */}
           <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
             <button 
               onClick={() => onSettingsChange({ ...settings, brushMode: 'erase' })}
