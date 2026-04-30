@@ -738,6 +738,10 @@ export default function SpriteMaster() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Escape handling
       if (e.key === 'Escape') {
+        if (isPickingColor) {
+          setIsPickingColor(false);
+          return;
+        }
         if (!focusedFrameId) {
           setSelectedIds(new Set());
           setSettings(prev => ({ ...prev, interactionMode: 'none' }));
