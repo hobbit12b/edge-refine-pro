@@ -1300,6 +1300,12 @@ export default function SpriteMaster() {
                 setUploadedImage(null);
               }}
               onReorderChapters={reorderChapters}
+              onPickColor={handlePickColor}
+              onApplyColorRemoval={handleApplyColorRemoval}
+              onAutoColorRemoval={handleAutoColorRemoval}
+              isPickingColor={isPickingColor}
+              onEdgeOp={handleEdgeOp}
+              edgeBusy={edgeBusy}
             />
             
             <MainPreview 
