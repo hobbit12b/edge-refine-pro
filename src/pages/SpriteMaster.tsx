@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useFrameSelection } from '@/hooks/useFrameSelection';
 import { FileUpload } from '@/components/FileUpload';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { MainPreview } from '@/components/MainPreview';
@@ -22,9 +23,6 @@ export default function SpriteMaster() {
   const [originalFrames, setOriginalFrames] = useState<Frame[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
-  const [focusedFrameId, setFocusedFrameId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'editor' | 'analyzer' | 'test' | 'export'>('editor');
   const [history, setHistory] = useState<{ frames: Frame[], selectedIds: Set<string> }[]>([]);
   const [redoStack, setRedoStack] = useState<{ frames: Frame[], selectedIds: Set<string> }[]>([]);
@@ -419,40 +417,23 @@ export default function SpriteMaster() {
       }
   };
 
-  const toggleSelect = (id: string, shiftKey?: boolean, ctrlKey?: boolean) => {
-    let next = new Set(selectedIds);
-    
-    if (shiftKey && lastSelectedId) {
-      const allIds = frames.map(f => f.id);
-      const startIdx = allIds.indexOf(lastSelectedId);
-      const endIdx = allIds.indexOf(id);
-      
-      if (startIdx !== -1 && endIdx !== -1) {
-        const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
-        const rangeIds = allIds.slice(min, max + 1);
-        
-        if (!ctrlKey) {
-          next = new Set(rangeIds);
-        } else {
-          rangeIds.forEach(rid => next.add(rid));
-        }
-      }
-    } else if (ctrlKey) {
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-    } else {
-      next = new Set([id]);
-    }
-    
-    setSelectedIds(next);
-    setLastSelectedId(id);
-    setFocusedFrameId(id);
-  };
-
   const pushToHistory = useCallback(() => {
     setHistory(prev => [...prev.slice(-19), { frames: [...frames], selectedIds: new Set(selectedIds) }]);
     setRedoStack([]);
   }, [frames, selectedIds]);
+
+  const {
+    selectedIds,
+    setSelectedIds,
+    focusedFrameId,
+    setFocusedFrameId,
+    toggleSelect,
+    selectAll,
+    deselectAll,
+  } = useFrameSelection(frames, {
+    onBeforeSelectAll: pushToHistory,
+    onBeforeDeselectAll: pushToHistory,
+  });
 
   const undo = useCallback(() => {
     if (history.length === 0) return;
@@ -678,16 +659,6 @@ export default function SpriteMaster() {
       return result;
     });
   }, []);
-
-  const selectAll = useCallback(() => {
-    pushToHistory();
-    setSelectedIds(new Set(frames.map(f => f.id)));
-  }, [pushToHistory, frames]);
-
-  const deselectAll = useCallback(() => {
-    pushToHistory();
-    setSelectedIds(new Set());
-  }, [pushToHistory]);
 
   const handleStartOver = useCallback(() => {
     setVideoFile(null);
