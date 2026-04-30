@@ -803,7 +803,7 @@ export default function SpriteMaster() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAll, deselectAll, deleteSelected]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAll, deselectAll, deleteSelected, isPickingColor]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
