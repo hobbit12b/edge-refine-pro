@@ -734,6 +734,10 @@ export default function SpriteMaster() {
     setActiveView(stepId as any);
   };
 
+  // Color removal / edge refinement state (declared early so keyboard handler can reference)
+  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [edgeBusy, setEdgeBusy] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Escape handling
@@ -930,11 +934,8 @@ export default function SpriteMaster() {
     }
   };
 
-  // ============================================================
-  // Color removal & edge refinement
-  // ============================================================
-  const [isPickingColor, setIsPickingColor] = useState(false);
-  const [edgeBusy, setEdgeBusy] = useState(false);
+  // (isPickingColor / edgeBusy declared above near keyboard handler)
+
 
   const getTargetIds = useCallback(() => {
     if (selectedIds.size > 0) return Array.from(selectedIds);
