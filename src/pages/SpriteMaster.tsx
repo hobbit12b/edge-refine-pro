@@ -17,6 +17,7 @@ import { TopHeader } from '@/components/TopHeader';
 import { Loader2, Download, X, Scissors, Sparkles, FolderPlus, Save, FileUp, Gamepad2, Repeat, Target, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { serializeProject, deserializeProject } from '@/services/projectService';
+import { toast } from '@/components/ui/use-toast';
 
 export default function SpriteMaster() {
   const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
@@ -433,6 +434,13 @@ export default function SpriteMaster() {
           frameIds: chapter.frameIds.filter(frameId => validFrameIds.has(frameId)),
         }))
         .filter(chapter => chapter.frameIds.length > 0);
+
+      const removedChapterCount = prevChapters.length - nextChapters.length;
+      if (removedChapterCount > 0) {
+        toast({
+          description: removedChapterCount === 1 ? 'Lege selectie verwijderd' : 'Lege selecties verwijderd',
+        });
+      }
 
       const validChapterIds = new Set(nextChapters.map(chapter => chapter.id));
       setBindings(prevBindings => prevBindings.map(binding => (
