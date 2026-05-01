@@ -647,7 +647,7 @@ export default function SpriteMaster() {
     });
   }, []);
 
-  const handleStartOver = useCallback(() => {
+  const resetToEmptyProjectState = useCallback(() => {
     revokeAll();
     setVideoFile(null);
     setUploadedImage(null);
@@ -672,6 +672,16 @@ export default function SpriteMaster() {
     ]);
     setActiveBindingId('default');
   }, [resetSelection, revokeAll]);
+
+  const handleStartOver = useCallback(() => {
+    resetToEmptyProjectState();
+  }, [resetToEmptyProjectState]);
+
+  useEffect(() => {
+    if (hasProject && frames.length === 0) {
+      resetToEmptyProjectState();
+    }
+  }, [hasProject, frames.length, resetToEmptyProjectState]);
 
   useEffect(() => {
     const handleClearDuplicates = () => setDuplicateIds(new Set());
