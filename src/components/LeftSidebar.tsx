@@ -51,9 +51,7 @@ interface LeftSidebarProps {
   onPickColor: () => void;
   onApplyColorRemoval: () => void;
   onAutoColorRemoval: () => void;
-  onToggleAreaRemoval: () => void;
   isPickingColor: boolean;
-  isRemovingArea: boolean;
   // Edge refine
   onEdgeOp: (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => void;
   edgeBusy: boolean;
@@ -82,9 +80,7 @@ export function LeftSidebar({
   onPickColor,
   onApplyColorRemoval,
   onAutoColorRemoval,
-  onToggleAreaRemoval,
   isPickingColor,
-  isRemovingArea,
   onEdgeOp,
   edgeBusy,
 }: LeftSidebarProps) {
@@ -546,18 +542,6 @@ export function LeftSidebar({
               Toepassen
             </button>
             <button
-              onClick={onToggleAreaRemoval}
-              disabled={frames.length === 0}
-              className={`py-2 rounded-lg border text-[10px] font-black uppercase tracking-tight disabled:opacity-40 ${
-                isRemovingArea
-                  ? 'bg-orange-600 border-orange-400 text-white ring-2 ring-orange-400/30'
-                  : 'bg-zinc-950 border-zinc-800 text-zinc-200 hover:border-orange-500'
-              }`}
-              title="Klik op een vlak in de preview om alleen dat verbonden vlak transparant te maken"
-            >
-              {isRemovingArea ? 'Klik op vlak…' : 'Vlak weg'}
-            </button>
-            <button
               onClick={onAutoColorRemoval}
               disabled={removalState.active || frames.length === 0}
               className="py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-[10px] font-black uppercase tracking-tight hover:border-purple-500 disabled:opacity-40"
@@ -569,11 +553,6 @@ export function LeftSidebar({
           <p className="text-[8px] text-zinc-600 leading-tight">
             Werkt op {selectedIds.size > 0 ? `${selectedIds.size} geselecteerde` : focusedFrameId ? '1 actief' : '0'} frame{selectedIds.size === 1 || (!selectedIds.size && focusedFrameId) ? '' : 's'}.
           </p>
-          {isRemovingArea && (
-            <p className="text-[9px] text-orange-300 leading-tight">
-              Vlak weg actief: klik in de preview. Werkt op het actieve frame. Esc annuleert.
-            </p>
-          )}
         </section>
 
         {/* Edge refine */}
@@ -623,15 +602,6 @@ export function LeftSidebar({
           </div>
           <p className="text-[8px] text-zinc-600 leading-tight">Werkt op selectie. Stapelbaar via Undo/Redo.</p>
         </section>
-
-        {/* Manual touch-up moved to editor */}
-        {focusedFrameId && (
-          <section className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
-            <p className="text-[10px] text-zinc-400 leading-snug">
-              <span className="text-purple-400 font-bold">Handmatige tools</span> (Penseel, Lasso, Gum…) staan nu in de bovenbalk van de editor →
-            </p>
-          </section>
-        )}
 
         {/* Packing & Optimization */}
         <section className="space-y-4 pt-4 border-t border-zinc-900">

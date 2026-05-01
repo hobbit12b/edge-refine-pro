@@ -195,6 +195,81 @@ export async function removeConnectedAreaFromBlob(
   return imageDataToBlob(canvas, data);
 }
 
+export async function restoreConnectedAreaFromOriginalBlob(
+  currentBlob: Blob,
+  originalBlob: Blob,
+  x: number,
+  y: number,
+  tolerance: number,
+): Promise<Blob> {
+  const { data: currentData, canvas } = await blobToImageData(currentBlob);
+  const { data: originalData } = await blobToImageData(originalBlob);
+  const { width: w, height: h, data: curPx } = currentData;
+  const origPx = originalData.data;
+  if (originalData.width !== w || originalData.height !== h) {
+    throw new Error('Current and original frame dimensions differ.');
+  }
+  if (x < 0 || y < 0 || x >= w || y >= h) return currentBlob;
+
+  const seedIdx = (y * w + x) * 4;
+  const tol = Math.max(0, Math.min(100, tolerance)) * 4.42;
+  const visited = new Uint8Array(w * h);
+  const stack: number[] = [];
+
+  const isTransparentAt = (idx: number) => curPx[idx + 3] === 0;
+  let seedColor = { r: curPx[seedIdx], g: curPx[seedIdx + 1], b: curPx[seedIdx + 2] };
+  let seedFromTransparent = isTransparentAt(seedIdx);
+
+  if (seedFromTransparent) {
+    stack.push(x, y);
+  } else {
+    const probe = [x + 1, y, x - 1, y, x, y + 1, x, y - 1];
+    for (let i = 0; i < probe.length; i += 2) {
+      const nx = probe[i], ny = probe[i + 1];
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const ni = (ny * w + nx) * 4;
+      if (isTransparentAt(ni)) { seedFromTransparent = true; break; }
+    }
+    stack.push(x, y);
+  }
+
+  const distToSeed = (i: number) => {
+    const dr = curPx[i] - seedColor.r;
+    const dg = curPx[i + 1] - seedColor.g;
+    const db = curPx[i + 2] - seedColor.b;
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+  };
+
+  let restoredCount = 0;
+  while (stack.length) {
+    const cy = stack.pop()!;
+    const cx = stack.pop()!;
+    if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+    const idx = cy * w + cx;
+    if (visited[idx]) continue;
+    visited[idx] = 1;
+    const i = idx * 4;
+
+    if (seedFromTransparent) {
+      if (!isTransparentAt(i)) continue;
+    } else {
+      if (distToSeed(i) > tol) continue;
+    }
+
+    curPx[i] = origPx[i];
+    curPx[i + 1] = origPx[i + 1];
+    curPx[i + 2] = origPx[i + 2];
+    curPx[i + 3] = origPx[i + 3];
+    restoredCount++;
+    stack.push(cx + 1, cy, cx - 1, cy, cx, cy + 1, cx, cy - 1);
+  }
+
+  if (restoredCount === 0) {
+    throw new Error('Geen herstelbaar verbonden vlak gevonden.');
+  }
+  return imageDataToBlob(canvas, currentData);
+}
+
 // ---------- Alpha morphology ----------
 
 function alphaMorph(data: ImageData, mode: "erode" | "dilate", iterations: number): void {
