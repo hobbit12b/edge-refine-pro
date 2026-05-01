@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFrameSelection } from '@/hooks/useFrameSelection';
 import { useHistory } from '@/hooks/useHistory';
+import { useObjectUrlRegistry } from '@/hooks/useObjectUrlRegistry';
 import { FileUpload } from '@/components/FileUpload';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { MainPreview } from '@/components/MainPreview';
@@ -18,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import JSZip from 'jszip';
 
 export default function SpriteMaster() {
+  const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [frames, setFrames] = useState<Frame[]>([]);
@@ -186,6 +188,7 @@ export default function SpriteMaster() {
         pushToHistory();
         const offset = frames.length;
         const reindexed = extracted.map((f, i) => ({ ...f, index: offset + i, id: crypto.randomUUID() }));
+        trackFrameUrls(reindexed);
         setFrames(prev => [...prev, ...reindexed]);
         setOriginalFrames(prev => [...prev, ...reindexed]);
 
@@ -204,6 +207,8 @@ export default function SpriteMaster() {
         setIsAppending(false);
       } else {
         clearHistory();
+        revokeAll();
+        trackFrameUrls(extracted);
         setFrames(extracted);
         setOriginalFrames(extracted);
         setChapters([]);
@@ -288,7 +293,7 @@ export default function SpriteMaster() {
           if (imageFile) {
             const blob = await imageFile.async("blob");
             if (blob) {
-              const url = URL.createObjectURL(blob);
+              const url = createTrackedUrl(blob);
               loadedFrames.push({
                 ...fData,
                 index: i,
@@ -299,6 +304,10 @@ export default function SpriteMaster() {
           }
         }
       }
+
+      clearHistory();
+      revokeAll();
+      trackFrameUrls(loadedFrames);
 
       setSettings(projectData.settings);
       if (projectData.chapters) setChapters(projectData.chapters);
@@ -372,6 +381,7 @@ export default function SpriteMaster() {
         index: offset + i,
         id: crypto.randomUUID()
       }));
+      trackFrameUrls(reindexed);
       setFrames(prev => [...prev, ...reindexed]);
       setOriginalFrames(prev => [...prev, ...reindexed]);
       
@@ -397,6 +407,8 @@ export default function SpriteMaster() {
       setUploadedImage(null);
       } else {
         clearHistory();
+        revokeAll();
+        trackFrameUrls(slicedFrames);
         setFrames(slicedFrames);
         setOriginalFrames(slicedFrames);
         setChapters([]);
@@ -437,6 +449,16 @@ export default function SpriteMaster() {
     setFrames,
     setSelectedIds,
   });
+
+  const trackFrameUrls = useCallback((nextFrames: Frame[]) => {
+    nextFrames.forEach(frame => trackUrl(frame.url));
+  }, [trackUrl]);
+
+  useEffect(() => {
+    if (history.length > 0 || redoStack.length > 0) return;
+    const activeUrls = [...frames, ...originalFrames].map(frame => frame.url);
+    revokeUnused(activeUrls);
+  }, [frames, originalFrames, history.length, redoStack.length, revokeUnused]);
 
   const selectAllWithHistory = useCallback(() => {
     pushToHistory();
@@ -499,7 +521,7 @@ export default function SpriteMaster() {
 
       const blob = await new Promise<Blob | null>(r => canvas.toBlob(b => r(b), 'image/png'));
       if (!blob) continue;
-      const url = URL.createObjectURL(blob);
+      const url = createTrackedUrl(blob);
 
       newFrames[idx] = {
         ...frame,
@@ -527,7 +549,7 @@ export default function SpriteMaster() {
 
         const origBlob = await new Promise<Blob | null>(r => origCanvas.toBlob(b => r(b), 'image/png'));
         if (!origBlob) continue;
-        const origUrl = URL.createObjectURL(origBlob);
+        const origUrl = createTrackedUrl(origBlob);
 
         newOriginalFrames[origFrameIdx] = {
           ...origFrame,
@@ -557,7 +579,7 @@ export default function SpriteMaster() {
   const onUpdateFrame = useCallback(async (id: string, newBlob: Blob) => {
     if (!newBlob) return;
     pushToHistory();
-    const newUrl = URL.createObjectURL(newBlob);
+    const newUrl = createTrackedUrl(newBlob);
     
     // Recalculate trimmed box
     const img = new Image();
@@ -646,6 +668,7 @@ export default function SpriteMaster() {
   }, []);
 
   const handleStartOver = useCallback(() => {
+    revokeAll();
     setVideoFile(null);
     setUploadedImage(null);
     setFrames([]);
@@ -670,7 +693,7 @@ export default function SpriteMaster() {
       { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
     ]);
     setActiveBindingId('default');
-  }, []);
+  }, [revokeAll]);
 
   useEffect(() => {
     const handleClearDuplicates = () => setDuplicateIds(new Set());
@@ -902,7 +925,7 @@ export default function SpriteMaster() {
     // NOTE: do NOT revoke frame.url — the previous Frame object (with that url)
     // is still referenced by undo/redo history snapshots and existing thumbnails.
     // Revoking here would break Ctrl+Z and turn thumbnails into broken images.
-    const newUrl = URL.createObjectURL(newBlob);
+    const newUrl = createTrackedUrl(newBlob);
     const img = new Image();
     img.src = newUrl;
     await new Promise(r => { img.onload = r; });
