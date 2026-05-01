@@ -16,7 +16,7 @@ import { removeBackground } from '@/services/backgroundRemovalService';
 import { TopHeader } from '@/components/TopHeader';
 import { Loader2, Download, X, Scissors, Sparkles, FolderPlus, Save, FileUp, Gamepad2, Repeat, Target, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import JSZip from 'jszip';
+import { serializeProject, deserializeProject } from '@/services/projectService';
 
 export default function SpriteMaster() {
   const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
@@ -242,32 +242,7 @@ export default function SpriteMaster() {
   };
 
   const saveProject = async () => {
-    const zip = new JSZip();
-    const projectData = {
-      settings,
-      chapters,
-      bindings,
-      frames: frames.map(f => ({
-        id: f.id,
-        durationMultiplier: f.durationMultiplier,
-        offset: f.offset,
-        trimmedBox: f.trimmedBox,
-        originalWidth: f.originalWidth,
-        originalHeight: f.originalHeight,
-        filename: `frame_${f.id}.png`
-      }))
-    };
-
-    zip.file("project.json", JSON.stringify(projectData));
-    const imagesFolder = zip.folder("images");
-    
-    if (imagesFolder) {
-      for (const frame of frames) {
-        imagesFolder.file(`frame_${frame.id}.png`, frame.blob);
-      }
-    }
-
-    const content = await zip.generateAsync({ type: "blob" });
+    const content = await serializeProject({ settings, chapters, bindings, frames });
     if (content) {
       const link = document.createElement("a");
       link.href = URL.createObjectURL(content);
@@ -278,32 +253,7 @@ export default function SpriteMaster() {
 
   const loadProject = async (file: File) => {
     try {
-      const zip = await JSZip.loadAsync(file);
-      const projectFile = zip.file("project.json");
-      if (!projectFile) throw new Error("Invalid project file: project.json missing");
-      
-      const projectData = JSON.parse(await projectFile.async("string"));
-      const loadedFrames: Frame[] = [];
-      const imagesFolder = zip.folder("images");
-
-      if (imagesFolder) {
-        for (let i = 0; i < projectData.frames.length; i++) {
-          const fData = projectData.frames[i];
-          const imageFile = imagesFolder.file(fData.filename);
-          if (imageFile) {
-            const blob = await imageFile.async("blob");
-            if (blob) {
-              const url = createTrackedUrl(blob);
-              loadedFrames.push({
-                ...fData,
-                index: i,
-                blob,
-                url
-              });
-            }
-          }
-        }
-      }
+      const { projectData, loadedFrames } = await deserializeProject({ file, createTrackedUrl });
 
       clearHistory();
       revokeAll();
