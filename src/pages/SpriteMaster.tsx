@@ -141,6 +141,20 @@ export default function SpriteMaster() {
     resetSelection,
   } = useFrameSelection(frames);
 
+  const {
+    history,
+    redoStack,
+    pushToHistory,
+    undo,
+    redo,
+    clearHistory,
+  } = useHistory({
+    frames,
+    selectedIds,
+    setFrames,
+    setSelectedIds,
+  });
+
   const activeFrames = useMemo(() => {
     return selectedIds.size > 0 
       ? frames.filter(f => selectedIds.has(f.id))
