@@ -219,13 +219,21 @@ export function MainPreview({
     const frameW = settings.frameSize.width * visualScale;
     const frameH = settings.frameSize.height * visualScale;
     const containerW = containerRef.current?.parentElement?.clientWidth || window.innerWidth - 600;
-    const containerH = containerRef.current?.parentElement?.clientHeight || window.innerHeight - 200;
-    
+    const controlsHeight = 96;
+    const containerH = (containerRef.current?.parentElement?.clientHeight || window.innerHeight - 200) - controlsHeight;
+
     if (frameW > 0 && frameH > 0) {
       const scaleW = (containerW - 100) / frameW;
       const scaleH = (containerH - 100) / frameH;
       const fitScale = Math.min(scaleW, scaleH) * 100;
-      updateSetting('zoom', Math.floor(fitScale));
+      const nextSettings = {
+        ...settings,
+        zoom: Math.floor(fitScale),
+        offset: { x: 0, y: 0 },
+      };
+
+      setPanOffset({ x: 0, y: 0 });
+      onSettingsChange(nextSettings);
     }
   };
 
