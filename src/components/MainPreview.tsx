@@ -79,6 +79,7 @@ export function MainPreview({
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [manualEditorDismissedForFrameId, setManualEditorDismissedForFrameId] = useState<string | null>(null);
 
   // Sync initial pan offset from settings
   useEffect(() => {
@@ -122,6 +123,13 @@ export function MainPreview({
     ? frames.filter(f => selectedIds.has(f.id))
     : frames;
 
+  const singleSelectedFrameId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
+  const manualEditorFrameId = focusedFrameId || singleSelectedFrameId;
+  const shouldShowManualEditor = Boolean(
+    manualEditorFrameId &&
+    (!singleSelectedFrameId || manualEditorDismissedForFrameId !== singleSelectedFrameId)
+  );
+
   const updateSetting = <K extends keyof SpriteSheetSettings>(key: K, value: SpriteSheetSettings[K]) => {
     onSettingsChange({ ...settings, [key]: value });
   };
@@ -129,6 +137,18 @@ export function MainPreview({
   useEffect(() => {
     setCurrentIndex(0);
   }, [selectedIds.size]);
+
+  useEffect(() => {
+    if (selectedIds.size !== 1) {
+      setManualEditorDismissedForFrameId(null);
+      return;
+    }
+
+    const selectedFrameId = Array.from(selectedIds)[0];
+    if (manualEditorDismissedForFrameId && manualEditorDismissedForFrameId !== selectedFrameId) {
+      setManualEditorDismissedForFrameId(null);
+    }
+  }, [selectedIds, manualEditorDismissedForFrameId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -327,10 +347,10 @@ export function MainPreview({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {focusedFrameId && settings.interactionMode !== 'none' ? (
+        {shouldShowManualEditor ? (
           (() => {
-            const editorFrame = frames.find(f => f.id === focusedFrameId);
-            const editorOriginalFrame = originalFrames.find(f => f.id === focusedFrameId);
+            const editorFrame = frames.find(f => f.id === manualEditorFrameId);
+            const editorOriginalFrame = originalFrames.find(f => f.id === manualEditorFrameId);
             
             if (!editorFrame || !editorOriginalFrame) return null;
             
@@ -342,7 +362,12 @@ export function MainPreview({
                   settings={settings}
                   onSettingsChange={onSettingsChange}
                   onUpdate={onUpdateFrame}
-                  onClose={() => updateSetting('interactionMode', 'none')}
+                  onClose={() => {
+                    updateSetting('interactionMode', 'none');
+                    if (singleSelectedFrameId) {
+                      setManualEditorDismissedForFrameId(singleSelectedFrameId);
+                    }
+                  }}
                   visualScale={visualScale}
                 />
               </div>
