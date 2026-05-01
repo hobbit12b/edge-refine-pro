@@ -5,64 +5,202 @@ export async function extractFrames(
   fps: number,
   startTime: number,
   endTime: number,
-  onProgress: (progress: number) => void
+  onProgress: (progress: number) => void,
+  signal?: AbortSignal
 ): Promise<Frame[]> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.style.display = 'none';
-    video.preload = 'auto';
+    video.preload = 'metadata';
     video.muted = true;
     video.playsInline = true;
     document.body.appendChild(video);
 
     if (!videoFile) {
-      reject(new Error('Geen videobestand opgegeven'));
+      reject(new Error('Geen videobestand opgegeven.'));
       return;
     }
+
     const objectUrl = URL.createObjectURL(videoFile);
-    video.src = objectUrl;
+    let settled = false;
+    let cleaned = false;
+
+    const fail = (message: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(message));
+    };
+
+    const onAbort = () => {
+      fail('Video-extractie is geannuleerd.');
+    };
 
     const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
       URL.revokeObjectURL(objectUrl);
       if (document.body.contains(video)) {
         document.body.removeChild(video);
       }
+      signal?.removeEventListener('abort', onAbort);
     };
 
-    video.onloadedmetadata = async () => {
+    const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
+      return new Promise<T>((resolveTimeout, rejectTimeout) => {
+        const timeoutId = window.setTimeout(() => {
+          rejectTimeout(new Error(timeoutMessage));
+        }, timeoutMs);
+
+        promise
+          .then((value) => {
+            window.clearTimeout(timeoutId);
+            resolveTimeout(value);
+          })
+          .catch((error) => {
+            window.clearTimeout(timeoutId);
+            rejectTimeout(error);
+          });
+      });
+    };
+
+    const waitForEvent = (eventName: keyof HTMLMediaElementEventMap): Promise<void> => {
+      return new Promise((resolveEvent, rejectEvent) => {
+        const onEvent = () => {
+          cleanupListeners();
+          resolveEvent();
+        };
+
+        const onError = () => {
+          cleanupListeners();
+          const err = video.error;
+          rejectEvent(new Error(`Video laden mislukt: ${err?.message || `Decoderfout (code: ${err?.code ?? 'onbekend'})`}`));
+        };
+
+        const onAbortEvent = () => {
+          cleanupListeners();
+          rejectEvent(new Error('Video-extractie is geannuleerd.'));
+        };
+
+        const cleanupListeners = () => {
+          video.removeEventListener(eventName, onEvent);
+          video.removeEventListener('error', onError);
+          signal?.removeEventListener('abort', onAbortEvent);
+        };
+
+        video.addEventListener(eventName, onEvent, { once: true });
+        video.addEventListener('error', onError, { once: true });
+        signal?.addEventListener('abort', onAbortEvent, { once: true });
+      });
+    };
+
+    const waitForSeeked = (time: number): Promise<void> => {
+      return new Promise((resolveSeek, rejectSeek) => {
+        const onSeeked = () => {
+          cleanupListeners();
+          resolveSeek();
+        };
+
+        const onError = () => {
+          cleanupListeners();
+          const err = video.error;
+          rejectSeek(new Error(`Frame zoeken mislukt rond ${time.toFixed(2)}s: ${err?.message || `Decoderfout (code: ${err?.code ?? 'onbekend'})`}`));
+        };
+
+        const onAbortEvent = () => {
+          cleanupListeners();
+          rejectSeek(new Error('Video-extractie is geannuleerd.'));
+        };
+
+        const cleanupListeners = () => {
+          video.removeEventListener('seeked', onSeeked);
+          video.removeEventListener('error', onError);
+          signal?.removeEventListener('abort', onAbortEvent);
+        };
+
+        video.addEventListener('seeked', onSeeked, { once: true });
+        video.addEventListener('error', onError, { once: true });
+        signal?.addEventListener('abort', onAbortEvent, { once: true });
+
+        video.currentTime = time;
+      });
+    };
+
+    const run = async () => {
       try {
-        await new Promise((r) => (video.oncanplaythrough = r));
-        
+        if (signal?.aborted) {
+          throw new Error('Video-extractie is geannuleerd.');
+        }
+        signal?.addEventListener('abort', onAbort);
+
+        video.src = objectUrl;
+
+        await withTimeout(
+          waitForEvent('loadedmetadata'),
+          15000,
+          'Video metadata laden duurt te lang. Probeer een ander bestand of kortere video.'
+        );
+
+        if (!video.videoWidth || !video.videoHeight) {
+          await withTimeout(
+            waitForEvent('loadeddata'),
+            15000,
+            'Video beelddata laden duurt te lang. Probeer een ander bestand of lagere resolutie.'
+          );
+        }
+
+        if (!video.videoWidth || !video.videoHeight) {
+          throw new Error('Video bevat geen geldige afmetingen.');
+        }
+
         const duration = video.duration;
-        const actualEndTime = Math.min(endTime, duration);
-        const totalSeconds = actualEndTime - startTime;
-        const totalFrames = Math.floor(totalSeconds * fps);
+        if (!Number.isFinite(duration) || duration <= 0) {
+          throw new Error('Videoduur kon niet worden bepaald.');
+        }
+
+        const actualStart = Math.max(0, startTime);
+        const actualEndTime = Math.min(Math.max(actualStart, endTime), duration);
+        const totalSeconds = Math.max(0, actualEndTime - actualStart);
+        const totalFrames = Math.max(0, Math.floor(totalSeconds * fps));
         const frames: Frame[] = [];
+
+        if (totalFrames === 0) {
+          settled = true;
+          cleanup();
+          resolve(frames);
+          return;
+        }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         if (!ctx) {
-          throw new Error('Could not get canvas context');
+          throw new Error('Canvas initialiseren is mislukt.');
         }
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        let currentFrame = 0;
         const interval = 1 / fps;
 
-        for (let time = startTime; time < actualEndTime; time += interval) {
-          video.currentTime = time;
-          await new Promise((r) => {
-            const onSeeked = () => {
-              video.removeEventListener('seeked', onSeeked);
-              r(null);
-            };
-            video.addEventListener('seeked', onSeeked);
-          });
+        for (let currentFrame = 0; currentFrame < totalFrames; currentFrame++) {
+          if (signal?.aborted) {
+            throw new Error('Video-extractie is geannuleerd.');
+          }
+
+          const targetTime = Math.min(actualStart + currentFrame * interval, Math.max(actualStart, actualEndTime - 0.0001));
+
+          await withTimeout(
+            waitForSeeked(targetTime),
+            12000,
+            `Frame zoeken duurt te lang rond ${targetTime.toFixed(2)}s. Probeer minder FPS of een korter fragment.`
+          );
 
           ctx.drawImage(video, 0, 0);
-          
+
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const trimmedBox = getTrimmedBox(imageData);
 
@@ -81,23 +219,18 @@ export async function extractFrames(
             });
           }
 
-          currentFrame++;
-          onProgress(Math.min(1, currentFrame / totalFrames));
+          onProgress(Math.min(1, (currentFrame + 1) / totalFrames));
         }
 
+        settled = true;
         cleanup();
         resolve(frames);
-      } catch (err) {
-        cleanup();
-        reject(err);
+      } catch (error) {
+        fail(error instanceof Error ? error.message : 'Onbekende fout tijdens video-extractie.');
       }
     };
 
-    video.onerror = () => {
-      const err = video.error;
-      cleanup();
-      reject(new Error(`Video laden mislukt: ${err?.message || 'Onbekende decoderingsfout (Code: ' + err?.code + ')'}`));
-    };
+    run();
   });
 }
 
