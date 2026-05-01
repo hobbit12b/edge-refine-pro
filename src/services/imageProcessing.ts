@@ -212,31 +212,15 @@ export async function restoreConnectedAreaFromOriginalBlob(
   if (x < 0 || y < 0 || x >= w || y >= h) return currentBlob;
 
   const seedIdx = (y * w + x) * 4;
+  const seedColor = { r: origPx[seedIdx], g: origPx[seedIdx + 1], b: origPx[seedIdx + 2] };
   const tol = Math.max(0, Math.min(100, tolerance)) * 4.42;
   const visited = new Uint8Array(w * h);
-  const stack: number[] = [];
-
-  const isTransparentAt = (idx: number) => curPx[idx + 3] === 0;
-  let seedColor = { r: curPx[seedIdx], g: curPx[seedIdx + 1], b: curPx[seedIdx + 2] };
-  let seedFromTransparent = isTransparentAt(seedIdx);
-
-  if (seedFromTransparent) {
-    stack.push(x, y);
-  } else {
-    const probe = [x + 1, y, x - 1, y, x, y + 1, x, y - 1];
-    for (let i = 0; i < probe.length; i += 2) {
-      const nx = probe[i], ny = probe[i + 1];
-      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-      const ni = (ny * w + nx) * 4;
-      if (isTransparentAt(ni)) { seedFromTransparent = true; break; }
-    }
-    stack.push(x, y);
-  }
+  const stack: number[] = [x, y];
 
   const distToSeed = (i: number) => {
-    const dr = curPx[i] - seedColor.r;
-    const dg = curPx[i + 1] - seedColor.g;
-    const db = curPx[i + 2] - seedColor.b;
+    const dr = origPx[i] - seedColor.r;
+    const dg = origPx[i + 1] - seedColor.g;
+    const db = origPx[i + 2] - seedColor.b;
     return Math.sqrt(dr * dr + dg * dg + db * db);
   };
 
@@ -250,11 +234,7 @@ export async function restoreConnectedAreaFromOriginalBlob(
     visited[idx] = 1;
     const i = idx * 4;
 
-    if (seedFromTransparent) {
-      if (!isTransparentAt(i)) continue;
-    } else {
-      if (distToSeed(i) > tol) continue;
-    }
+    if (distToSeed(i) > tol) continue;
 
     curPx[i] = origPx[i];
     curPx[i + 1] = origPx[i + 1];
