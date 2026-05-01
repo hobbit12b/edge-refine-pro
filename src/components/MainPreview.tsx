@@ -116,6 +116,7 @@ export function MainPreview({
   }, [focusedFrameId]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
   const activeFrames = selectedIds.size > 0 
     ? frames.filter(f => selectedIds.has(f.id))
@@ -218,9 +219,8 @@ export function MainPreview({
   const fitToScreen = () => {
     const frameW = settings.frameSize.width * visualScale;
     const frameH = settings.frameSize.height * visualScale;
-    const containerW = containerRef.current?.parentElement?.clientWidth || window.innerWidth - 600;
-    const controlsHeight = 96;
-    const containerH = (containerRef.current?.parentElement?.clientHeight || window.innerHeight - 200) - controlsHeight;
+    const containerW = workspaceRef.current?.clientWidth || window.innerWidth - 600;
+    const containerH = workspaceRef.current?.clientHeight || window.innerHeight - 200;
 
     if (frameW > 0 && frameH > 0) {
       const scaleW = (containerW - 100) / frameW;
@@ -313,7 +313,7 @@ export function MainPreview({
 
       {/* Main Preview Area */}
       <div 
-        className={`flex-1 relative flex items-center justify-center p-20 overflow-hidden ${
+        className={`flex-1 relative overflow-hidden ${
           settings.checkerboardMode === 'transparent' ? 'bg-zinc-950' : 
           settings.checkerboardMode === 'red' ? 'bg-red-900' :
           settings.checkerboardMode === 'green' ? 'bg-green-900' :
@@ -350,18 +350,22 @@ export function MainPreview({
           })()
         ) : null}
         
-        <div className="absolute inset-0 checkerboard opacity-10 pointer-events-none" />
-        
-        {/* Preview Container */}
-        <div 
-          ref={containerRef}
-          className={`relative shadow-2xl flex-none`}
-          style={{
-            width: settings.frameSize.width * (settings.zoom / 100),
-            height: settings.frameSize.height * (settings.zoom / 100),
-            transform: `translate(${panOffset.x}px, ${panOffset.y}px)`
-          }}
+        <div
+          ref={workspaceRef}
+          className="absolute top-0 left-0 right-0 bottom-24 flex items-center justify-center p-20 overflow-hidden"
         >
+          <div className="absolute inset-0 checkerboard opacity-10 pointer-events-none" />
+
+          {/* Preview Container */}
+          <div 
+            ref={containerRef}
+            className={`relative shadow-2xl flex-none`}
+            style={{
+              width: settings.frameSize.width * (settings.zoom / 100),
+              height: settings.frameSize.height * (settings.zoom / 100),
+              transform: `translate(${panOffset.x}px, ${panOffset.y}px)`
+            }}
+          >
           {/* Bounding Box Overlay */}
           <div className="absolute inset-0 border border-dashed border-purple-500/50 pointer-events-none" />
           
@@ -442,6 +446,7 @@ export function MainPreview({
               )}
             </>
           )}
+          </div>
         </div>
 
         {/* Bottom persistent controls - Fixed design */}
