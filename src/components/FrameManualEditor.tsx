@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Frame, SpriteSheetSettings } from '../types';
-import { Pencil, RotateCcw, Eraser, Scissors, Lasso, LassoSelect, Magnet, Ghost } from 'lucide-react';
+import { Pencil, RotateCcw, Eraser, WandSparkles, Lasso, LassoSelect, Magnet, Ghost } from 'lucide-react';
 import { useToast } from './ui/use-toast';
 
 interface FrameManualEditorProps {
@@ -34,7 +34,7 @@ export function FrameManualEditor({
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [areaMode, setAreaMode] = useState<'remove' | null>(null);
+  const [areaMode, setAreaMode] = useState<'wand' | null>(null);
   const prevFrameIdRef = useRef(frame.id);
   const { toast } = useToast();
 
@@ -296,18 +296,22 @@ export function FrameManualEditor({
       const py = Math.round(pos.y);
       (async () => {
         try {
-          const { removeConnectedAreaFromBlob } = await import('@/services/imageProcessing');
-          const newBlob = await removeConnectedAreaFromBlob(frame.blob, px, py, settings.colorTolerance);
+          const { removeConnectedAreaFromBlob, restoreConnectedAreaFromOriginalBlob } = await import('@/services/imageProcessing');
+          const newBlob = settings.brushMode === 'erase'
+            ? await removeConnectedAreaFromBlob(frame.blob, px, py, settings.colorTolerance)
+            : await restoreConnectedAreaFromOriginalBlob(frame.blob, originalFrame.blob, px, py, settings.colorTolerance);
           onUpdate(frame.id, newBlob);
           toast({
-            title: 'Vlak verwijderd',
-            description: 'Verbonden vlak is transparant gemaakt op het actieve frame.',
+            title: settings.brushMode === 'erase' ? 'Verbonden vlak verwijderd' : 'Verbonden vlak hersteld',
+            description: settings.brushMode === 'erase'
+              ? 'Verbonden vlak is transparant gemaakt op het actieve frame.'
+              : 'Verbonden vlak is hersteld vanaf het originele frame.',
           });
         } catch (err) {
           console.error('Area tool failed:', err);
           toast({
-            title: 'Vlak verwijderen mislukt',
-            description: 'Kon het geselecteerde vlak niet verwerken.',
+            title: 'Toverstaf bewerking mislukt',
+            description: err instanceof Error ? err.message : 'Kon het geselecteerde vlak niet verwerken.',
             variant: 'destructive',
           });
         } finally {
@@ -565,7 +569,10 @@ export function FrameManualEditor({
             ] as const).map(({ mode, label, Icon, title }) => (
               <button
                 key={mode}
-                onClick={() => onSettingsChange({ ...settings, interactionMode: settings.interactionMode === mode ? 'none' : mode })}
+                  onClick={() => {
+                    setAreaMode(null);
+                    onSettingsChange({ ...settings, interactionMode: settings.interactionMode === mode ? 'none' : mode });
+                  }}
                 className={`p-1.5 rounded-lg flex items-center gap-1.5 px-3 transition-all ${settings.interactionMode === mode ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
                 title={title}
               >
@@ -577,7 +584,7 @@ export function FrameManualEditor({
 
           <div className="h-8 w-px bg-zinc-800 mx-1" />
 
-          {/* Brush mode */}
+          {/* Action mode */}
           <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
             <button 
               onClick={() => onSettingsChange({ ...settings, brushMode: 'erase' })}
@@ -596,38 +603,56 @@ export function FrameManualEditor({
               <span className="text-[10px] font-black uppercase tracking-tight">Herstel</span>
             </button>
             <button
-              onClick={() => setAreaMode(prev => prev === 'remove' ? null : 'remove')}
-              className={`p-1.5 rounded-lg flex items-center gap-2 px-3 transition-all ${areaMode === 'remove' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-              title="Klik op een verbonden vlak om transparant te maken (Esc annuleert)"
+              onClick={() => {
+                setAreaMode(prev => prev === 'wand' ? null : 'wand');
+                onSettingsChange({ ...settings, interactionMode: 'none' });
+              }}
+              className={`p-1.5 rounded-lg flex items-center gap-2 px-3 transition-all ${areaMode === 'wand' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+              title="Toverstaf: klik een verbonden vlak (Esc annuleert)"
             >
-              <Scissors size={14} />
-              <span className="text-[10px] font-black uppercase tracking-tight">Vlak weg</span>
+              <WandSparkles size={14} />
+              <span className="text-[10px] font-black uppercase tracking-tight">Toverstaf</span>
             </button>
           </div>
+        </div>
+      </div>
 
-          {settings.interactionMode === 'brush' && (
-            <>
-              <div className="h-8 w-px bg-zinc-800 mx-1" />
-              <div className="flex items-center gap-3 px-3">
-                <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="50" 
-                    value={settings.brushSize}
-                    onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
-                    className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                  />
-                  <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
-                </div>
+      <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-900">
+        <div className="flex items-center gap-4">
+          {(settings.interactionMode === 'brush') && (
+            <div className="flex items-center gap-3 px-1">
+              <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={settings.brushSize}
+                  onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
+                  className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
               </div>
-            </>
+            </div>
           )}
 
-          <div className="h-8 w-px bg-zinc-800 mx-1" />
+          {areaMode === 'wand' && (
+            <div className="flex items-center gap-3 px-1">
+              <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Tolerantie</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={settings.colorTolerance}
+                onChange={(e) => onSettingsChange({ ...settings, colorTolerance: parseInt(e.target.value) })}
+                className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+              />
+              <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.colorTolerance}</span>
+            </div>
+          )}
 
-          <div className="flex items-center gap-4 px-3">
+          <div className="h-6 w-px bg-zinc-800 mx-1" />
+          <div className="flex items-center gap-4 px-1">
             <label className="flex items-center gap-2 cursor-pointer group">
               <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${settings.antiAlias ? 'bg-purple-600 border-purple-500' : 'bg-zinc-800 border-zinc-700 group-hover:border-zinc-500'}`}>
                 {settings.antiAlias && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
@@ -651,25 +676,7 @@ export function FrameManualEditor({
             </button>
           </div>
         </div>
-
       </div>
-
-      {areaMode === 'remove' && (
-        <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-900">
-          <div className="flex items-center gap-3 max-w-sm">
-            <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Tolerantie</span>
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              value={settings.colorTolerance}
-              onChange={(e) => onSettingsChange({ ...settings, colorTolerance: parseInt(e.target.value) })}
-              className="flex-1 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
-            />
-            <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.colorTolerance}</span>
-          </div>
-        </div>
-      )}
 
       <div 
         ref={containerRef}
@@ -767,8 +774,8 @@ export function FrameManualEditor({
         </div>
         
         <div className="flex items-center gap-4">
-          {areaMode === 'remove' && (
-            <p className="text-orange-300">Klik op een verbonden vlak om het weg te halen.</p>
+          {areaMode === 'wand' && (
+            <p className="text-orange-300">Toverstaf actief: klik op een verbonden vlak om te {settings.brushMode === 'erase' ? 'gummen' : 'herstellen'}.</p>
           )}
         </div>
       </div>
