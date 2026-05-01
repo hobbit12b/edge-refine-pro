@@ -299,27 +299,58 @@ export default function SpriteMaster() {
     }
   };
 
+  const resetToEmptyProjectState = useCallback(() => {
+    revokeAll();
+    setVideoFile(null);
+    setUploadedImage(null);
+    setFrames([]);
+    setOriginalFrames([]);
+    setIsExtracting(false);
+    setProgress(0);
+    resetSelection();
+    setActiveView('editor');
+    clearHistory();
+    setDuplicateIds(new Set());
+    setIsDetectingDuplicates(false);
+    setRemovalState({ active: false, current: 0, total: 0, progress: 0 });
+    setIsAppending(false);
+    setHasProject(false);
+    setChapters([]);
+    setBindings([
+      { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
+      { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
+      { id: 'walk-left', keys: ['ArrowLeft'], label: 'Lopen Links', chapterId: null, mirror: true, holdToPlay: true, loop: true, finishAnimation: false },
+      { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
+    ]);
+    setActiveBindingId('default');
+  }, [clearHistory, resetSelection, revokeAll]);
+
   const deleteDuplicates = () => {
     pushToHistory();
     const dups = new Set(duplicateIds);
-    const newFrames: Frame[] = [];
-    
+    const nextFrames: Frame[] = [];
+
     for (let i = 0; i < frames.length; i++) {
       const frame = frames[i];
       if (dups.has(frame.id)) {
-        if (newFrames.length > 0) {
-          newFrames[newFrames.length - 1] = {
-            ...newFrames[newFrames.length - 1],
-            durationMultiplier: newFrames[newFrames.length - 1].durationMultiplier + (frame.durationMultiplier || 1)
+        if (nextFrames.length > 0) {
+          nextFrames[nextFrames.length - 1] = {
+            ...nextFrames[nextFrames.length - 1],
+            durationMultiplier: nextFrames[nextFrames.length - 1].durationMultiplier + (frame.durationMultiplier || 1)
           };
         }
       } else {
-        newFrames.push({ ...frame });
+        nextFrames.push({ ...frame });
       }
     }
-    
-    setFrames(newFrames);
-    cleanupChaptersAndBindingsForFrames(newFrames);
+
+    if (nextFrames.length === 0) {
+      resetToEmptyProjectState();
+      return;
+    }
+
+    setFrames(nextFrames);
+    cleanupChaptersAndBindingsForFrames(nextFrames);
     setDuplicateIds(new Set());
     const nextSelected = new Set(selectedIds);
     dups.forEach(id => nextSelected.delete(id));
@@ -448,26 +479,35 @@ export default function SpriteMaster() {
 
   const deleteSelected = useCallback(() => {
     pushToHistory();
-    const toDelete = selectedIds.size > 0 
-      ? selectedIds 
+    const toDelete = selectedIds.size > 0
+      ? selectedIds
       : (focusedFrameId ? new Set([focusedFrameId]) : new Set<string>());
-      
+
     if (toDelete.size === 0) return;
 
     const nextFrames = frames.filter(f => !toDelete.has(f.id));
+    if (nextFrames.length === 0) {
+      resetToEmptyProjectState();
+      return;
+    }
+
     setFrames(nextFrames);
     cleanupChaptersAndBindingsForFrames(nextFrames);
     setSelectedIds(new Set());
     setFocusedFrameId(null);
-  }, [pushToHistory, selectedIds, focusedFrameId, frames, cleanupChaptersAndBindingsForFrames]);
+  }, [pushToHistory, selectedIds, focusedFrameId, frames, resetToEmptyProjectState, cleanupChaptersAndBindingsForFrames]);
 
   const keepOnlySelected = useCallback(() => {
     pushToHistory();
     const nextFrames = frames.filter(f => selectedIds.has(f.id));
+    if (nextFrames.length === 0) {
+      resetToEmptyProjectState();
+      return;
+    }
     setFrames(nextFrames);
     cleanupChaptersAndBindingsForFrames(nextFrames);
     setSelectedIds(new Set());
-  }, [pushToHistory, selectedIds, frames, cleanupChaptersAndBindingsForFrames]);
+  }, [pushToHistory, selectedIds, frames, resetToEmptyProjectState, cleanupChaptersAndBindingsForFrames]);
 
   const onScaleSelection = useCallback(async (factor: number) => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : frames.map(f => f.id);
@@ -647,41 +687,9 @@ export default function SpriteMaster() {
     });
   }, []);
 
-  const resetToEmptyProjectState = useCallback(() => {
-    revokeAll();
-    setVideoFile(null);
-    setUploadedImage(null);
-    setFrames([]);
-    setOriginalFrames([]);
-    setIsExtracting(false);
-    setProgress(0);
-    resetSelection();
-    setActiveView('editor');
-    clearHistory();
-    setDuplicateIds(new Set());
-    setIsDetectingDuplicates(false);
-    setRemovalState({ active: false, current: 0, total: 0, progress: 0 });
-    setIsAppending(false);
-    setHasProject(false);
-    setChapters([]);
-    setBindings([
-      { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
-      { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
-      { id: 'walk-left', keys: ['ArrowLeft'], label: 'Lopen Links', chapterId: null, mirror: true, holdToPlay: true, loop: true, finishAnimation: false },
-      { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
-    ]);
-    setActiveBindingId('default');
-  }, [resetSelection, revokeAll]);
-
   const handleStartOver = useCallback(() => {
     resetToEmptyProjectState();
   }, [resetToEmptyProjectState]);
-
-  useEffect(() => {
-    if (hasProject && frames.length === 0) {
-      resetToEmptyProjectState();
-    }
-  }, [hasProject, frames.length, resetToEmptyProjectState]);
 
   useEffect(() => {
     const handleClearDuplicates = () => setDuplicateIds(new Set());
