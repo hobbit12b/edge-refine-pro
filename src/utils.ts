@@ -23,6 +23,7 @@ export async function extractFrames(
 
     const objectUrl = URL.createObjectURL(videoFile);
     let settled = false;
+    let cleaned = false;
 
     const fail = (message: string) => {
       if (settled) return;
@@ -31,7 +32,13 @@ export async function extractFrames(
       reject(new Error(message));
     };
 
+    const onAbort = () => {
+      fail('Video-extractie is geannuleerd.');
+    };
+
     const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
       video.pause();
       video.removeAttribute('src');
       video.load();
@@ -40,10 +47,6 @@ export async function extractFrames(
         document.body.removeChild(video);
       }
       signal?.removeEventListener('abort', onAbort);
-    };
-
-    const onAbort = () => {
-      fail('Video-extractie is geannuleerd.');
     };
 
     const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
