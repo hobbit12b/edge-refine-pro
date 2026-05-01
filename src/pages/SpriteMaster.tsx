@@ -18,6 +18,7 @@ import { Loader2, Download, X, Scissors, Sparkles, FolderPlus, Save, FileUp, Gam
 import { motion, AnimatePresence } from 'framer-motion';
 import { serializeProject, deserializeProject } from '@/services/projectService';
 import { toast } from '@/components/ui/use-toast';
+import { cleanupChapters } from '@/utils/cleanupChapters';
 
 export default function SpriteMaster() {
   const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
@@ -425,33 +426,25 @@ export default function SpriteMaster() {
 
 
   const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
-    const validFrameIds = new Set(nextFrames.map(frame => frame.id));
+    const validFrameIds = new Set(nextFrames.map((frame) => frame.id));
 
-    setChapters(prevChapters => {
-      const nextChapters = prevChapters
-        .map(chapter => ({
-          ...chapter,
-          frameIds: chapter.frameIds.filter(frameId => validFrameIds.has(frameId)),
-        }))
-        .filter(chapter => chapter.frameIds.length > 0);
+    setChapters((prevChapters) => {
+      const cleaned = cleanupChapters({
+        chapters: prevChapters,
+        bindings,
+        validFrameIds,
+      });
 
-      const removedChapterCount = prevChapters.length - nextChapters.length;
-      if (removedChapterCount > 0) {
+      if (cleaned.removedChapterCount > 0) {
         toast({
-          description: removedChapterCount === 1 ? 'Lege selectie verwijderd' : 'Lege selecties verwijderd',
+          description: cleaned.removedChapterCount === 1 ? 'Lege selectie verwijderd' : 'Lege selecties verwijderd',
         });
       }
 
-      const validChapterIds = new Set(nextChapters.map(chapter => chapter.id));
-      setBindings(prevBindings => prevBindings.map(binding => (
-        binding.chapterId && !validChapterIds.has(binding.chapterId)
-          ? { ...binding, chapterId: null }
-          : binding
-      )));
-
-      return nextChapters;
+      setBindings(cleaned.bindings);
+      return cleaned.chapters;
     });
-  }, [setChapters, setBindings]);
+  }, [bindings, setChapters, setBindings]);
 
   const deleteSelected = useCallback(() => {
     pushToHistory();
