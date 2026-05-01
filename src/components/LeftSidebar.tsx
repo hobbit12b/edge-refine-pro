@@ -51,7 +51,9 @@ interface LeftSidebarProps {
   onPickColor: () => void;
   onApplyColorRemoval: () => void;
   onAutoColorRemoval: () => void;
+  onToggleAreaRemoval: () => void;
   isPickingColor: boolean;
+  isRemovingArea: boolean;
   // Edge refine
   onEdgeOp: (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => void;
   edgeBusy: boolean;
@@ -80,7 +82,9 @@ export function LeftSidebar({
   onPickColor,
   onApplyColorRemoval,
   onAutoColorRemoval,
+  onToggleAreaRemoval,
   isPickingColor,
+  isRemovingArea,
   onEdgeOp,
   edgeBusy,
 }: LeftSidebarProps) {
@@ -472,35 +476,25 @@ export function LeftSidebar({
 
         {/* Color removal */}
         <section className="space-y-3 pt-3 border-t border-zinc-900">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kleur verwijderen</h3>
-            {settings.pickedColor && (
-              <span
-                className="w-5 h-5 rounded border border-zinc-700"
-                style={{ backgroundColor: settings.pickedColor }}
-                title={settings.pickedColor}
-              />
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-auto">Kleur verwijderen</h3>
+            <Pencil size={12} className="text-cyan-400" />
             <button
               onClick={onPickColor}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-tight transition-all ${
+              className={`px-2 py-1 rounded-md border text-[9px] font-bold uppercase tracking-tight transition-all ${
                 isPickingColor
                   ? 'bg-cyan-600 border-cyan-400 text-white ring-2 ring-cyan-400/40'
                   : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:bg-zinc-900'
               }`}
-              title="Klik daarna op een achtergrondpixel in de preview (Esc = annuleren)"
+              title="Klik daarna op een pixel in de preview (Esc = annuleren)"
             >
-              <Pencil size={12} />
-              <span>{isPickingColor ? 'Klik in preview…' : 'Kies pixel'}</span>
+              {isPickingColor ? 'Klik…' : 'Kies pixel'}
             </button>
             <input
               type="color"
               value={settings.pickedColor || '#000000'}
               onChange={(e) => updateSetting('pickedColor', e.target.value)}
-              className="w-full h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer"
+              className="w-8 h-7 rounded-md bg-zinc-950 border border-zinc-800 cursor-pointer"
               title="Of kies handmatig"
             />
           </div>
@@ -552,6 +546,18 @@ export function LeftSidebar({
               Toepassen
             </button>
             <button
+              onClick={onToggleAreaRemoval}
+              disabled={frames.length === 0}
+              className={`py-2 rounded-lg border text-[10px] font-black uppercase tracking-tight disabled:opacity-40 ${
+                isRemovingArea
+                  ? 'bg-orange-600 border-orange-400 text-white ring-2 ring-orange-400/30'
+                  : 'bg-zinc-950 border-zinc-800 text-zinc-200 hover:border-orange-500'
+              }`}
+              title="Klik op een vlak in de preview om alleen dat verbonden vlak transparant te maken"
+            >
+              {isRemovingArea ? 'Klik op vlak…' : 'Vlak weg'}
+            </button>
+            <button
               onClick={onAutoColorRemoval}
               disabled={removalState.active || frames.length === 0}
               className="py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-[10px] font-black uppercase tracking-tight hover:border-purple-500 disabled:opacity-40"
@@ -563,6 +569,11 @@ export function LeftSidebar({
           <p className="text-[8px] text-zinc-600 leading-tight">
             Werkt op {selectedIds.size > 0 ? `${selectedIds.size} geselecteerde` : focusedFrameId ? '1 actief' : '0'} frame{selectedIds.size === 1 || (!selectedIds.size && focusedFrameId) ? '' : 's'}.
           </p>
+          {isRemovingArea && (
+            <p className="text-[9px] text-orange-300 leading-tight">
+              Vlak weg actief: klik in de preview. Werkt op het actieve frame. Esc annuleert.
+            </p>
+          )}
         </section>
 
         {/* Edge refine */}
