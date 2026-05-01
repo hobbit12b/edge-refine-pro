@@ -366,6 +366,7 @@ export default function SpriteMaster() {
     }
     
     setFrames(newFrames);
+    cleanupChaptersAndBindingsForFrames(newFrames);
     setDuplicateIds(new Set());
     const nextSelected = new Set(selectedIds);
     dups.forEach(id => nextSelected.delete(id));
@@ -470,6 +471,29 @@ export default function SpriteMaster() {
     deselectAll();
   }, [pushToHistory, deselectAll]);
 
+
+  const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
+    const validFrameIds = new Set(nextFrames.map(frame => frame.id));
+
+    setChapters(prevChapters => {
+      const nextChapters = prevChapters
+        .map(chapter => ({
+          ...chapter,
+          frameIds: chapter.frameIds.filter(frameId => validFrameIds.has(frameId)),
+        }))
+        .filter(chapter => chapter.frameIds.length > 0);
+
+      const validChapterIds = new Set(nextChapters.map(chapter => chapter.id));
+      setBindings(prevBindings => prevBindings.map(binding => (
+        binding.chapterId && !validChapterIds.has(binding.chapterId)
+          ? { ...binding, chapterId: null }
+          : binding
+      )));
+
+      return nextChapters;
+    });
+  }, [setChapters, setBindings]);
+
   const deleteSelected = useCallback(() => {
     pushToHistory();
     const toDelete = selectedIds.size > 0 
@@ -478,16 +502,20 @@ export default function SpriteMaster() {
       
     if (toDelete.size === 0) return;
 
-    setFrames(prev => prev.filter(f => !toDelete.has(f.id)));
+    const nextFrames = frames.filter(f => !toDelete.has(f.id));
+    setFrames(nextFrames);
+    cleanupChaptersAndBindingsForFrames(nextFrames);
     setSelectedIds(new Set());
     setFocusedFrameId(null);
-  }, [pushToHistory, selectedIds, focusedFrameId]);
+  }, [pushToHistory, selectedIds, focusedFrameId, frames, cleanupChaptersAndBindingsForFrames]);
 
   const keepOnlySelected = useCallback(() => {
     pushToHistory();
-    setFrames(prev => prev.filter(f => selectedIds.has(f.id)));
+    const nextFrames = frames.filter(f => selectedIds.has(f.id));
+    setFrames(nextFrames);
+    cleanupChaptersAndBindingsForFrames(nextFrames);
     setSelectedIds(new Set());
-  }, [pushToHistory, selectedIds]);
+  }, [pushToHistory, selectedIds, frames, cleanupChaptersAndBindingsForFrames]);
 
   const onScaleSelection = useCallback(async (factor: number) => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : frames.map(f => f.id);
