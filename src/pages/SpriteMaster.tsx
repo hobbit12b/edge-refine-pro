@@ -421,20 +421,6 @@ export default function SpriteMaster() {
       }
   };
 
-  const {
-    history,
-    redoStack,
-    pushToHistory,
-    undo,
-    redo,
-    clearHistory,
-  } = useHistory({
-    frames,
-    selectedIds,
-    setFrames,
-    setSelectedIds,
-  });
-
   const trackFrameUrls = useCallback((nextFrames: Frame[]) => {
     nextFrames.forEach(frame => trackUrl(frame.url));
   }, [trackUrl]);
