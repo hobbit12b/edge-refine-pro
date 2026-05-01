@@ -51,6 +51,12 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
     setSelectedIds(new Set());
   }, [options]);
 
+  const resetSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastSelectedId(null);
+    setFocusedFrameId(null);
+  }, []);
+
   return {
     selectedIds,
     setSelectedIds,
@@ -60,5 +66,6 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
     toggleSelect,
     selectAll,
     deselectAll,
+    resetSelection,
   };
 }
