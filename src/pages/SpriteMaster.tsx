@@ -136,6 +136,7 @@ export default function SpriteMaster() {
     toggleSelect,
     selectAll,
     deselectAll,
+    resetSelection,
   } = useFrameSelection(frames);
 
   const activeFrames = useMemo(() => {
@@ -653,9 +654,7 @@ export default function SpriteMaster() {
     setOriginalFrames([]);
     setIsExtracting(false);
     setProgress(0);
-    setSelectedIds(new Set());
-    setLastSelectedId(null);
-    setFocusedFrameId(null);
+    resetSelection();
     setActiveView('editor');
     clearHistory();
     setDuplicateIds(new Set());
@@ -671,7 +670,7 @@ export default function SpriteMaster() {
       { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
     ]);
     setActiveBindingId('default');
-  }, [revokeAll]);
+  }, [resetSelection, revokeAll]);
 
   useEffect(() => {
     const handleClearDuplicates = () => setDuplicateIds(new Set());
