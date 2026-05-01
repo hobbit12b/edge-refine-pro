@@ -313,32 +313,6 @@ export default function SpriteMaster() {
     }
   };
 
-  const resetToEmptyProjectState = useCallback(() => {
-    revokeAll();
-    setVideoFile(null);
-    setUploadedImage(null);
-    setFrames([]);
-    setOriginalFrames([]);
-    setIsExtracting(false);
-    setProgress(0);
-    resetSelection();
-    setActiveView('editor');
-    clearHistory();
-    setDuplicateIds(new Set());
-    setIsDetectingDuplicates(false);
-    setRemovalState({ active: false, current: 0, total: 0, progress: 0 });
-    setIsAppending(false);
-    setHasProject(false);
-    setChapters([]);
-    setBindings([
-      { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
-      { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
-      { id: 'walk-left', keys: ['ArrowLeft'], label: 'Lopen Links', chapterId: null, mirror: true, holdToPlay: true, loop: true, finishAnimation: false },
-      { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
-    ]);
-    setActiveBindingId('default');
-  }, [clearHistory, resetSelection, revokeAll]);
-
   const deleteDuplicates = () => {
     pushToHistory();
     const dups = new Set(duplicateIds);
@@ -476,6 +450,33 @@ export default function SpriteMaster() {
       return cleaned.chapters;
     });
   }, [bindings, setChapters, setBindings]);
+
+  const resetToEmptyProjectState = useCallback(() => {
+    revokeAll();
+    setVideoFile(null);
+    setUploadedImage(null);
+    setFrames([]);
+    setOriginalFrames([]);
+    setIsExtracting(false);
+    setProgress(0);
+    resetSelection();
+    setActiveView('editor');
+    clearHistory();
+    setDuplicateIds(new Set());
+    setIsDetectingDuplicates(false);
+    setRemovalState({ active: false, current: 0, total: 0, progress: 0 });
+    setIsAppending(false);
+    setHasProject(false);
+    setChapters([]);
+    setBindings([
+      { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
+      { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
+      { id: 'walk-left', keys: ['ArrowLeft'], label: 'Lopen Links', chapterId: null, mirror: true, holdToPlay: true, loop: true, finishAnimation: false },
+      { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
+    ]);
+    setActiveBindingId('default');
+  }, [clearHistory, resetSelection, revokeAll]);
+
 
   const deleteSelected = useCallback(() => {
     pushToHistory();
