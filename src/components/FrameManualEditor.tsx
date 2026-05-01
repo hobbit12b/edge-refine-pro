@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Frame, SpriteSheetSettings } from '../types';
-import { MousePointer2, Pencil, Trash2, RotateCcw, Save, Eraser, Square, Scissors, Lasso, LassoSelect, Magnet, ZoomIn, ZoomOut, Ghost } from 'lucide-react';
+import { Pencil, RotateCcw, Eraser, Scissors, Lasso, LassoSelect, Magnet, Ghost } from 'lucide-react';
 import { useToast } from './ui/use-toast';
 
 interface FrameManualEditorProps {
@@ -9,7 +9,6 @@ interface FrameManualEditorProps {
   settings: SpriteSheetSettings;
   onSettingsChange: (settings: SpriteSheetSettings) => void;
   onUpdate: (id: string, newBlob: Blob) => void;
-  onClose: () => void;
   visualScale: number;
 }
 
@@ -19,7 +18,6 @@ export function FrameManualEditor({
   settings,
   onSettingsChange,
   onUpdate,
-  onClose,
   visualScale
 }: FrameManualEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,7 +34,7 @@ export function FrameManualEditor({
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [areaMode, setAreaMode] = useState<'remove' | 'restore' | null>(null);
+  const [areaMode, setAreaMode] = useState<'remove' | null>(null);
   const prevFrameIdRef = useRef(frame.id);
   const { toast } = useToast();
 
@@ -298,21 +296,17 @@ export function FrameManualEditor({
       const py = Math.round(pos.y);
       (async () => {
         try {
-          const { removeConnectedAreaFromBlob, restoreConnectedAreaFromOriginalBlob } = await import('@/services/imageProcessing');
-          const newBlob = areaMode === 'remove'
-            ? await removeConnectedAreaFromBlob(frame.blob, px, py, settings.colorTolerance)
-            : await restoreConnectedAreaFromOriginalBlob(frame.blob, originalFrame.blob, px, py, settings.colorTolerance);
+          const { removeConnectedAreaFromBlob } = await import('@/services/imageProcessing');
+          const newBlob = await removeConnectedAreaFromBlob(frame.blob, px, py, settings.colorTolerance);
           onUpdate(frame.id, newBlob);
           toast({
-            title: areaMode === 'remove' ? 'Vlak verwijderd' : 'Vlak hersteld',
-            description: areaMode === 'remove'
-              ? 'Verbonden vlak is transparant gemaakt op het actieve frame.'
-              : 'Verbonden vlak is hersteld vanuit het origineel.',
+            title: 'Vlak verwijderd',
+            description: 'Verbonden vlak is transparant gemaakt op het actieve frame.',
           });
         } catch (err) {
           console.error('Area tool failed:', err);
           toast({
-            title: areaMode === 'remove' ? 'Vlak verwijderen mislukt' : 'Vlak herstellen mislukt',
+            title: 'Vlak verwijderen mislukt',
             description: 'Kon het geselecteerde vlak niet verwerken.',
             variant: 'destructive',
           });
@@ -609,32 +603,27 @@ export function FrameManualEditor({
               <Scissors size={14} />
               <span className="text-[10px] font-black uppercase tracking-tight">Vlak weg</span>
             </button>
-            <button
-              onClick={() => setAreaMode(prev => prev === 'restore' ? null : 'restore')}
-              className={`p-1.5 rounded-lg flex items-center gap-2 px-3 transition-all ${areaMode === 'restore' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-              title="Klik op een transparant vlak om te herstellen (Esc annuleert)"
-            >
-              <RotateCcw size={14} />
-              <span className="text-[10px] font-black uppercase tracking-tight">Vlak terug</span>
-            </button>
           </div>
 
-          <div className="h-8 w-px bg-zinc-800 mx-1" />
-
-          <div className="flex items-center gap-3 px-3">
-            <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
-            <div className="flex items-center gap-3">
-              <input 
-                type="range" 
-                min="1" 
-                max="50" 
-                value={settings.brushSize}
-                onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
-                className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-              <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
-            </div>
-          </div>
+          {settings.interactionMode === 'brush' && (
+            <>
+              <div className="h-8 w-px bg-zinc-800 mx-1" />
+              <div className="flex items-center gap-3 px-3">
+                <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="50" 
+                    value={settings.brushSize}
+                    onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
+                    className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="h-8 w-px bg-zinc-800 mx-1" />
 
@@ -663,14 +652,24 @@ export function FrameManualEditor({
           </div>
         </div>
 
-        <button 
-          onClick={onClose}
-          className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-purple-600/20 active:scale-95"
-        >
-          <RotateCcw size={14} className="rotate-90" />
-          Terug naar animatie preview
-        </button>
       </div>
+
+      {areaMode === 'remove' && (
+        <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-900">
+          <div className="flex items-center gap-3 max-w-sm">
+            <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Tolerantie</span>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={settings.colorTolerance}
+              onChange={(e) => onSettingsChange({ ...settings, colorTolerance: parseInt(e.target.value) })}
+              className="flex-1 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+            />
+            <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.colorTolerance}</span>
+          </div>
+        </div>
+      )}
 
       <div 
         ref={containerRef}
@@ -770,9 +769,6 @@ export function FrameManualEditor({
         <div className="flex items-center gap-4">
           {areaMode === 'remove' && (
             <p className="text-orange-300">Klik op een verbonden vlak om het weg te halen.</p>
-          )}
-          {areaMode === 'restore' && (
-            <p className="text-emerald-300">Klik op een transparant vlak om het te herstellen.</p>
           )}
         </div>
       </div>
