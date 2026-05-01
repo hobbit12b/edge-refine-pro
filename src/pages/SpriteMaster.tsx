@@ -253,10 +253,10 @@ export default function SpriteMaster() {
 
   const loadProject = async (file: File) => {
     try {
+      revokeAll();
       const { projectData, loadedFrames } = await deserializeProject({ file, createTrackedUrl });
 
       clearHistory();
-      revokeAll();
       trackFrameUrls(loadedFrames);
 
       setSettings(projectData.settings);
