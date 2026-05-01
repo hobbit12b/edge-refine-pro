@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Frame, SpriteSheetSettings } from '../types';
 import { MousePointer2, Pencil, Trash2, RotateCcw, Save, Eraser, Square, Scissors, Lasso, LassoSelect, Magnet, ZoomIn, ZoomOut, Ghost } from 'lucide-react';
+import { useToast } from './ui/use-toast';
 
 interface FrameManualEditorProps {
   frame: Frame;
@@ -35,7 +36,9 @@ export function FrameManualEditor({
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [currentImage, setCurrentImage] = useState<HTMLImageElement | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [areaMode, setAreaMode] = useState<'remove' | 'restore' | null>(null);
   const prevFrameIdRef = useRef(frame.id);
+  const { toast } = useToast();
 
   const renderPreview = useCallback(() => {
     if (!canvasRef.current || !maskCanvasRef.current || !originalImage) return;
@@ -222,6 +225,12 @@ export function FrameManualEditor({
       }
       
       if (e.code === 'Escape') {
+        if (areaMode) {
+          e.preventDefault();
+          e.stopPropagation();
+          setAreaMode(null);
+          return;
+        }
         if (points.length > 0 || guidePos) {
           e.preventDefault();
           e.stopPropagation();
@@ -245,7 +254,7 @@ export function FrameManualEditor({
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('keyup', handleKeyUp, true);
     };
-  }, []);
+  }, [areaMode, points.length, guidePos, renderPreview]);
 
   const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -281,6 +290,36 @@ export function FrameManualEditor({
         x: 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX,
         y: 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY
       });
+      return;
+    }
+    if (areaMode) {
+      const pos = getCanvasPos(e);
+      const px = Math.round(pos.x);
+      const py = Math.round(pos.y);
+      (async () => {
+        try {
+          const { removeConnectedAreaFromBlob, restoreConnectedAreaFromOriginalBlob } = await import('@/services/imageProcessing');
+          const newBlob = areaMode === 'remove'
+            ? await removeConnectedAreaFromBlob(frame.blob, px, py, settings.colorTolerance)
+            : await restoreConnectedAreaFromOriginalBlob(frame.blob, originalFrame.blob, px, py, settings.colorTolerance);
+          onUpdate(frame.id, newBlob);
+          toast({
+            title: areaMode === 'remove' ? 'Vlak verwijderd' : 'Vlak hersteld',
+            description: areaMode === 'remove'
+              ? 'Verbonden vlak is transparant gemaakt op het actieve frame.'
+              : 'Verbonden vlak is hersteld vanuit het origineel.',
+          });
+        } catch (err) {
+          console.error('Area tool failed:', err);
+          toast({
+            title: areaMode === 'remove' ? 'Vlak verwijderen mislukt' : 'Vlak herstellen mislukt',
+            description: 'Kon het geselecteerde vlak niet verwerken.',
+            variant: 'destructive',
+          });
+        } finally {
+          setAreaMode(null);
+        }
+      })();
       return;
     }
     if (settings.interactionMode === 'none') return;
@@ -562,6 +601,22 @@ export function FrameManualEditor({
               <RotateCcw size={14} />
               <span className="text-[10px] font-black uppercase tracking-tight">Herstel</span>
             </button>
+            <button
+              onClick={() => setAreaMode(prev => prev === 'remove' ? null : 'remove')}
+              className={`p-1.5 rounded-lg flex items-center gap-2 px-3 transition-all ${areaMode === 'remove' ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+              title="Klik op een verbonden vlak om transparant te maken (Esc annuleert)"
+            >
+              <Scissors size={14} />
+              <span className="text-[10px] font-black uppercase tracking-tight">Vlak weg</span>
+            </button>
+            <button
+              onClick={() => setAreaMode(prev => prev === 'restore' ? null : 'restore')}
+              className={`p-1.5 rounded-lg flex items-center gap-2 px-3 transition-all ${areaMode === 'restore' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+              title="Klik op een transparant vlak om te herstellen (Esc annuleert)"
+            >
+              <RotateCcw size={14} />
+              <span className="text-[10px] font-black uppercase tracking-tight">Vlak terug</span>
+            </button>
           </div>
 
           <div className="h-8 w-px bg-zinc-800 mx-1" />
@@ -676,6 +731,7 @@ export function FrameManualEditor({
               width: `${originalFrame.originalWidth * (settings.zoom / 100) * visualScale}px`,
               height: `${originalFrame.originalHeight * (settings.zoom / 100) * visualScale}px`,
               cursor: isDrawing ? 'none' : (settings.interactionMode === 'brush' ? 'crosshair' : 'default'),
+              ...(areaMode ? { cursor: 'crosshair' } : {}),
             }}
           />
 
@@ -712,7 +768,12 @@ export function FrameManualEditor({
         </div>
         
         <div className="flex items-center gap-4">
-           {/* Space for additional editor-specific info if needed */}
+          {areaMode === 'remove' && (
+            <p className="text-orange-300">Klik op een verbonden vlak om het weg te halen.</p>
+          )}
+          {areaMode === 'restore' && (
+            <p className="text-emerald-300">Klik op een transparant vlak om het te herstellen.</p>
+          )}
         </div>
       </div>
     </div>

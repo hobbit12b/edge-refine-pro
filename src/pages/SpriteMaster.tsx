@@ -711,7 +711,6 @@ export default function SpriteMaster() {
 
   // Color removal / edge refinement state (declared early so keyboard handler can reference)
   const [isPickingColor, setIsPickingColor] = useState(false);
-  const [isRemovingArea, setIsRemovingArea] = useState(false);
   const [edgeBusy, setEdgeBusy] = useState(false);
 
   useEffect(() => {
@@ -720,10 +719,6 @@ export default function SpriteMaster() {
       if (e.key === 'Escape') {
         if (isPickingColor) {
           setIsPickingColor(false);
-          return;
-        }
-        if (isRemovingArea) {
-          setIsRemovingArea(false);
           return;
         }
         if (!focusedFrameId) {
@@ -787,7 +782,7 @@ export default function SpriteMaster() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor, isRemovingArea]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
@@ -944,14 +939,7 @@ export default function SpriteMaster() {
 
   const handlePickColor = () => {
     if (!focusedFrameId && frames.length === 0) return;
-    setIsRemovingArea(false);
     setIsPickingColor(true);
-  };
-
-  const handleToggleAreaRemoval = () => {
-    if (!focusedFrameId && frames.length === 0) return;
-    setIsPickingColor(false);
-    setIsRemovingArea(prev => !prev);
   };
 
   // Triggered by MainPreview when user clicks a pixel while picking is active
@@ -997,34 +985,6 @@ export default function SpriteMaster() {
     }
   };
 
-  const handleRemoveConnectedArea = useCallback(async (frameId: string, x: number, y: number) => {
-    const idx = frames.findIndex(f => f.id === frameId);
-    if (idx === -1) {
-      setIsRemovingArea(false);
-      return;
-    }
-    pushToHistory();
-    try {
-      const { removeConnectedAreaFromBlob } = await import('@/services/imageProcessing');
-      const next = [...frames];
-      const newBlob = await removeConnectedAreaFromBlob(next[idx].blob, x, y, settings.colorTolerance);
-      next[idx] = await replaceFrameBlob(next[idx], newBlob);
-      setFrames(next);
-      toast({
-        title: 'Vlak verwijderd',
-        description: 'Verbonden vlak is transparant gemaakt op het actieve frame.',
-      });
-    } catch (e) {
-      console.error('Connected area removal failed:', e);
-      toast({
-        title: 'Vlak verwijderen mislukt',
-        description: 'Kon het geselecteerde vlak niet verwijderen.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsRemovingArea(false);
-    }
-  }, [frames, pushToHistory, replaceFrameBlob, settings.colorTolerance]);
 
   const handleAutoColorRemoval = async () => {
     const ids = getTargetIds();
@@ -1326,9 +1286,7 @@ export default function SpriteMaster() {
               onPickColor={handlePickColor}
               onApplyColorRemoval={handleApplyColorRemoval}
               onAutoColorRemoval={handleAutoColorRemoval}
-              onToggleAreaRemoval={handleToggleAreaRemoval}
               isPickingColor={isPickingColor}
-              isRemovingArea={isRemovingArea}
               onEdgeOp={handleEdgeOp}
               edgeBusy={edgeBusy}
             />
@@ -1359,8 +1317,6 @@ export default function SpriteMaster() {
               steps={steps}
               isPickingColor={isPickingColor}
               onColorPick={handleColorPicked}
-              isRemovingArea={isRemovingArea}
-              onRemoveAreaClick={handleRemoveConnectedArea}
             />
             
             <RightSidebar 
