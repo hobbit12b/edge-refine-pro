@@ -45,6 +45,8 @@ interface MainPreviewProps {
   steps: any[];
   isPickingColor?: boolean;
   onColorPick?: (frameId: string, x: number, y: number) => void;
+  isRemovingArea?: boolean;
+  onRemoveAreaClick?: (frameId: string, x: number, y: number) => void;
 }
 
 export function MainPreview({ 
@@ -73,6 +75,8 @@ export function MainPreview({
   steps,
   isPickingColor,
   onColorPick,
+  isRemovingArea,
+  onRemoveAreaClick,
 }: MainPreviewProps) {
   const isSpacePressedRef = useRef(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false); // keep state for UI re-render (cursor etc)
@@ -386,15 +390,20 @@ export function MainPreview({
                   width: `${currentFrame.originalWidth * (settings.zoom / 100) * visualScale}px`,
                   height: `${currentFrame.originalHeight * (settings.zoom / 100) * visualScale}px`,
                   transform: `translate(calc(-50% + ${(currentFrame.offset?.x || 0) * (settings.zoom / 100) * visualScale}px), calc(-50% + ${(currentFrame.offset?.y || 0) * (settings.zoom / 100) * visualScale}px))`,
-                  cursor: isPickingColor ? 'crosshair' : undefined,
-                  pointerEvents: isPickingColor ? 'auto' : 'none',
+                  cursor: (isPickingColor || isRemovingArea) ? 'crosshair' : undefined,
+                  pointerEvents: (isPickingColor || isRemovingArea) ? 'auto' : 'none',
                 }}
                 onClick={(e) => {
-                  if (!isPickingColor || !onColorPick) return;
                   const rect = (e.currentTarget as HTMLImageElement).getBoundingClientRect();
                   const x = Math.floor(((e.clientX - rect.left) / rect.width) * currentFrame.originalWidth);
                   const y = Math.floor(((e.clientY - rect.top) / rect.height) * currentFrame.originalHeight);
-                  onColorPick(currentFrame.id, x, y);
+                  if (isPickingColor && onColorPick) {
+                    onColorPick(currentFrame.id, x, y);
+                    return;
+                  }
+                  if (isRemovingArea && onRemoveAreaClick) {
+                    onRemoveAreaClick(currentFrame.id, x, y);
+                  }
                 }}
               />
 

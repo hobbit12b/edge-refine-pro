@@ -149,6 +149,52 @@ export async function removeColorFromBlob(
   return imageDataToBlob(canvas, data);
 }
 
+/**
+ * Remove a connected area from a clicked point using color tolerance.
+ * Only pixels connected 4-directionally to the clicked pixel are affected.
+ */
+export async function removeConnectedAreaFromBlob(
+  blob: Blob,
+  x: number,
+  y: number,
+  tolerance: number,
+): Promise<Blob> {
+  const { data, canvas } = await blobToImageData(blob);
+  const { width: w, height: h, data: px } = data;
+  if (x < 0 || y < 0 || x >= w || y >= h) return blob;
+
+  const seedIdx = (y * w + x) * 4;
+  const seed = { r: px[seedIdx], g: px[seedIdx + 1], b: px[seedIdx + 2] };
+  const tol = Math.max(0, Math.min(100, tolerance)) * 4.42;
+  const visited = new Uint8Array(w * h);
+  const stack: number[] = [x, y];
+  let removedCount = 0;
+
+  const dist = (i: number) => {
+    const dr = px[i] - seed.r;
+    const dg = px[i + 1] - seed.g;
+    const db = px[i + 2] - seed.b;
+    return Math.sqrt(dr * dr + dg * dg + db * db);
+  };
+
+  while (stack.length) {
+    const cy = stack.pop()!;
+    const cx = stack.pop()!;
+    if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+    const idx = cy * w + cx;
+    if (visited[idx]) continue;
+    visited[idx] = 1;
+    const i = idx * 4;
+    if (dist(i) > tol) continue;
+    px[i + 3] = 0;
+    removedCount++;
+    stack.push(cx + 1, cy, cx - 1, cy, cx, cy + 1, cx, cy - 1);
+  }
+
+  if (removedCount === 0) return blob;
+  return imageDataToBlob(canvas, data);
+}
+
 // ---------- Alpha morphology ----------
 
 function alphaMorph(data: ImageData, mode: "erode" | "dilate", iterations: number): void {
