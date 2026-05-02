@@ -57,6 +57,7 @@ interface LeftSidebarProps {
   onEdgeOp: (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => void;
   edgeBusy: boolean;
   isAllFramesMode: boolean;
+  selectionPreviewColor: string | null;
 }
 
 export function LeftSidebar({ 
@@ -86,6 +87,7 @@ export function LeftSidebar({
   onEdgeOp,
   edgeBusy,
   isAllFramesMode,
+  selectionPreviewColor,
 }: LeftSidebarProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState('');
@@ -95,12 +97,14 @@ export function LeftSidebar({
   };
 
   const addChapter = () => {
+    if (selectedIds.size === 0) return;
+
     const newChapter: AnimationChapter = {
       id: crypto.randomUUID(),
       name: 'Nieuw Hoofdstuk',
       frameIds: Array.from(selectedIds),
       isExpanded: true,
-      color: getNextChapterColor(chapters)
+      color: selectionPreviewColor ?? getNextChapterColor(chapters)
     };
     onChaptersChange([...chapters, newChapter]);
   };
