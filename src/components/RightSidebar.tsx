@@ -56,6 +56,7 @@ interface RightSidebarProps {
   chapters: AnimationChapter[];
   isAllFramesMode: boolean;
   selectionPreviewColor: string | null;
+  hasActiveChapterSelection: boolean;
 }
 
 interface SortableFrameItemProps {
@@ -247,6 +248,7 @@ export function RightSidebar({
   chapters,
   isAllFramesMode,
   selectionPreviewColor,
+  hasActiveChapterSelection,
 }: RightSidebarProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [isModelLoading, setIsModelLoading] = React.useState(false);
@@ -418,6 +420,7 @@ export function RightSidebar({
                         onSetSelectionAnchor(frame.id);
                       }}
                       onNormalClick={() => {
+                        if (hasActiveChapterSelection) return;
                         onToggleSelect(frame.id, false, false);
                       }}
                       onToggle={(shift, ctrl) => onToggleSelect(frame.id, shift, ctrl)}
