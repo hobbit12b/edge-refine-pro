@@ -36,7 +36,22 @@ export function FrameManualEditor({
   const [isReady, setIsReady] = useState(false);
   const [areaMode, setAreaMode] = useState<'wand' | null>(null);
   const prevFrameIdRef = useRef(frame.id);
+  const actionGroupRef = useRef<HTMLDivElement>(null);
+  const [actionGroupWidth, setActionGroupWidth] = useState(0);
   const { toast } = useToast();
+  const toolbarGroupGap = 16;
+
+  useEffect(() => {
+    const node = actionGroupRef.current;
+    if (!node) return;
+
+    const updateWidth = () => setActionGroupWidth(node.getBoundingClientRect().width);
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const renderPreview = useCallback(() => {
     if (!canvasRef.current || !maskCanvasRef.current || !originalImage) return;
@@ -314,8 +329,6 @@ export function FrameManualEditor({
             description: err instanceof Error ? err.message : 'Kon het geselecteerde vlak niet verwerken.',
             variant: 'destructive',
           });
-        } finally {
-          setAreaMode(null);
         }
       })();
       return;
@@ -559,7 +572,7 @@ export function FrameManualEditor({
     <div className="flex flex-col h-full">
       <div className="p-3 border-b border-zinc-800 bg-zinc-900 shadow-xl z-20">
         <div className="inline-grid grid-cols-[auto_auto] gap-x-4 gap-y-2 items-start">
-          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+          <div ref={actionGroupRef} className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
             <button
               onClick={() => onSettingsChange({ ...settings, brushMode: 'erase' })}
               className={`p-1.5 rounded-lg flex items-center gap-2 px-4 transition-all ${settings.brushMode === 'erase' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
@@ -614,7 +627,13 @@ export function FrameManualEditor({
       </div>
 
       <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-900">
-        <div className="inline-grid grid-cols-[auto_auto] gap-x-4 items-center">
+        <div
+          className="inline-grid items-center"
+          style={{
+            gridTemplateColumns: `${Math.max(actionGroupWidth, 0)}px minmax(0, 1fr)`,
+            columnGap: `${toolbarGroupGap}px`
+          }}
+        >
           <div aria-hidden="true" />
           <div className="flex items-center gap-4">
             {(settings.interactionMode === 'brush') && (
