@@ -305,15 +305,6 @@ export function RightSidebar({
   const activeFrame = frames.find(f => f.id === activeId);
   const isDraggingSelection = activeId && selectedIds.has(activeId);
   const selectionCount = selectedIds.size;
-  const selectedIdsKey = React.useMemo(() => Array.from(selectedIds).sort().join('|'), [selectedIds]);
-  const hasMatchingChapterSelection = React.useMemo(() => {
-    if (selectedIds.size === 0) return false;
-    return chapters.some((chapter) => {
-      if (chapter.frameIds.length !== selectedIds.size) return false;
-      return chapter.frameIds.every((frameId) => selectedIds.has(frameId));
-    });
-  }, [chapters, selectedIds, selectedIdsKey]);
-  const shouldPreserveChapterSelectionOnPlainClick = hasMatchingChapterSelection;
 
   return (
     <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col h-full overflow-hidden">
@@ -423,9 +414,7 @@ export function RightSidebar({
                         onSetSelectionAnchor(frame.id);
                       }}
                       onNormalClick={() => {
-                        if (!shouldPreserveChapterSelectionOnPlainClick) {
-                          onToggleSelect(frame.id, false, false);
-                        }
+                        onToggleSelect(frame.id, false, false);
                       }}
                       onToggle={(shift, ctrl) => onToggleSelect(frame.id, shift, ctrl)}
                       gridSize={settings.frameGridSize}

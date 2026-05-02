@@ -181,7 +181,7 @@ const activeFrames = useMemo(() => {
 }, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode]);
 
   const selectionPreviewColor = useMemo(() => {
-    if (!hasExplicitSelection || selectedIds.size < 2) return null;
+    if (selectionSource !== 'manual' || selectedIds.size < 1) return null;
     const selectedIdSet = new Set(selectedIds);
     const matchingChapter = chapters.find(chapter => {
       if (chapter.frameIds.length !== selectedIdSet.size) return false;
@@ -189,7 +189,7 @@ const activeFrames = useMemo(() => {
     });
     if (matchingChapter?.color) return matchingChapter.color;
     return getNextChapterColor(chapters);
-  }, [chapters, hasExplicitSelection, selectedIds]);
+  }, [chapters, selectionSource, selectedIds]);
 
 
   useEffect(() => {
@@ -1282,6 +1282,7 @@ const activeFrames = useMemo(() => {
               onShowExport={() => setActiveView('export')}
               onStartOver={handleStartOver}
               onReorderChapters={reorderChapters}
+              selectionPreviewColor={selectionPreviewColor}
               steps={steps}
             />
           </motion.div>
@@ -1345,6 +1346,7 @@ const activeFrames = useMemo(() => {
                 setUploadedImage(null);
               }}
               onReorderChapters={reorderChapters}
+              selectionPreviewColor={selectionPreviewColor}
               onPickColor={handlePickColor}
               onApplyColorRemoval={handleApplyColorRemoval}
               onAutoColorRemoval={handleAutoColorRemoval}
