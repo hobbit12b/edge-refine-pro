@@ -1451,6 +1451,7 @@ const activeFrames = useMemo(() => {
             <RightSidebar 
               frames={frames}
               chapters={chapters}
+              checkedChapterIds={checkedChapterIds}
               selectionPreviewColor={selectionPreviewColor}
               selectedIds={selectedIds}
               focusedFrameId={focusedFrameId}

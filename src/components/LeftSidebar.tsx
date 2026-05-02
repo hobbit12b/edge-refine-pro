@@ -247,7 +247,8 @@ export function LeftSidebar({
                   type="checkbox"
                   checked={isAllFramesMode}
                   onChange={() => {}} // Handled by div click
-                  className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 accent-purple-500 cursor-pointer pointer-events-none"
+                  style={{ accentColor: '#3f3f46' }}
+                  className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 cursor-pointer pointer-events-none"
                 />
               </div>
               <button 

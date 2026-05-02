@@ -54,6 +54,7 @@ interface RightSidebarProps {
   isPlaying: boolean;
   playbackFrameId: string | null;
   chapters: AnimationChapter[];
+  checkedChapterIds: Set<string>;
   isAllFramesMode: boolean;
   selectionPreviewColor: string | null;
 }
@@ -72,6 +73,7 @@ interface SortableFrameItemProps {
   activeId: string | null;
   frames: Frame[];
   chapterColor?: string;
+  checkedChapterColor?: string;
   stripColor: string;
   isAllFramesMode: boolean;
 }
@@ -89,6 +91,7 @@ function SortableFrameItem({
   activeId,
   frames,
   chapterColor,
+  checkedChapterColor,
   stripColor,
   isAllFramesMode,
 }: SortableFrameItemProps) {
@@ -135,18 +138,17 @@ function SortableFrameItem({
           relative w-full h-full rounded-xl border-2 transition-all group cursor-default overflow-hidden shadow-lg p-1
           ${isPlayingHighlight
             ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
-            : isFocused 
+              : isFocused 
               ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
               : isSelected 
                 ? (isAllFramesMode ? 'border-zinc-600 bg-zinc-700/10 opacity-100' : 'border-purple-600 bg-purple-600/10 opacity-100') 
-                : chapterColor
-                  ? 'border-zinc-700/50 opacity-80 bg-zinc-900/10'
+                : checkedChapterColor
+                  ? 'opacity-90 bg-zinc-900/10'
                   : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
           ${isDragging ? 'opacity-30 border-dashed border-purple-500 cursor-grabbing' : 'active:cursor-grabbing'}
         `}
         style={{
-          borderColor: isFocused ? '#ffffff' : (isSelected && chapterColor ? chapterColor : undefined),
-          backgroundColor: (isSelected || isFocused || !!chapterColor) && chapterColor ? `${chapterColor}1A` : undefined
+          borderColor: isFocused ? '#ffffff' : checkedChapterColor,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -245,6 +247,7 @@ export function RightSidebar({
   isPlaying,
   playbackFrameId,
   chapters,
+  checkedChapterIds,
   isAllFramesMode,
   selectionPreviewColor,
 }: RightSidebarProps) {
@@ -397,6 +400,7 @@ export function RightSidebar({
               >
                 {frames.map((frame) => {
                   const chapter = chapters.find(c => c.frameIds.includes(frame.id));
+                  const checkedChapter = chapters.find(c => checkedChapterIds.has(c.id) && c.frameIds.includes(frame.id));
                   const isSelected = selectedIds.has(frame.id);
                   const stripColor = chapter?.color
                     ? chapter.color
@@ -425,6 +429,7 @@ export function RightSidebar({
                       activeId={activeId}
                       frames={frames}
                       chapterColor={chapter?.color}
+                      checkedChapterColor={checkedChapter?.color}
                       stripColor={stripColor}
                       isAllFramesMode={isAllFramesMode}
                     />
