@@ -67,6 +67,7 @@ interface SortableFrameItemProps {
   isPlayingHighlight: boolean;
   onFocus: () => void;
   onToggle: (shift: boolean, ctrl: boolean) => void;
+  onNormalClick: () => void;
   gridSize: number;
   activeId: string | null;
   frames: Frame[];
@@ -83,6 +84,7 @@ function SortableFrameItem({
   isPlayingHighlight,
   onFocus, 
   onToggle, 
+  onNormalClick,
   gridSize,
   activeId,
   frames,
@@ -151,7 +153,9 @@ function SortableFrameItem({
           onFocus();
           if (e.shiftKey || e.ctrlKey || e.metaKey) {
             onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+            return;
           }
+          onNormalClick();
         }}
         {...attributes}
         {...listeners}
@@ -301,6 +305,19 @@ export function RightSidebar({
   const activeFrame = frames.find(f => f.id === activeId);
   const isDraggingSelection = activeId && selectedIds.has(activeId);
   const selectionCount = selectedIds.size;
+  const selectedIdsKey = React.useMemo(() => Array.from(selectedIds).sort().join('|'), [selectedIds]);
+  const hasMatchingChapterSelection = React.useMemo(() => {
+    if (selectedIds.size === 0) return false;
+    return chapters.some((chapter) => {
+      if (chapter.frameIds.length !== selectedIds.size) return false;
+      return chapter.frameIds.every((frameId) => selectedIds.has(frameId));
+    });
+  }, [chapters, selectedIds, selectedIdsKey]);
+  const hasActiveSelectionScope =
+    selectedIds.size > 1 ||
+    hasMatchingChapterSelection ||
+    (frames.length > 0 && selectedIds.size === frames.length) ||
+    isAllFramesMode;
 
   return (
     <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col h-full overflow-hidden">
@@ -408,6 +425,11 @@ export function RightSidebar({
                       onFocus={() => {
                         onFocusFrame(frame.id);
                         onSetSelectionAnchor(frame.id);
+                      }}
+                      onNormalClick={() => {
+                        if (!hasActiveSelectionScope) {
+                          onToggleSelect(frame.id, false, false);
+                        }
                       }}
                       onToggle={(shift, ctrl) => onToggleSelect(frame.id, shift, ctrl)}
                       gridSize={settings.frameGridSize}
