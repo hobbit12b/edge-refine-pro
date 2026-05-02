@@ -167,29 +167,6 @@ const hasExplicitSelection = useMemo(() => {
 }, [selectionSource, selectedIds.size]);
 
 
-const hasActiveChapterSelection = useMemo(() => {
-  if (selectedIds.size === 0 || chapters.length === 0) return false;
-
-  const checkedChapters = chapters.filter((chapter) =>
-    chapter.frameIds.length > 0 && chapter.frameIds.every((frameId) => selectedIds.has(frameId))
-  );
-
-  if (checkedChapters.length === 0) return false;
-
-  const checkedUnion = new Set<string>();
-  checkedChapters.forEach((chapter) => {
-    chapter.frameIds.forEach((frameId) => checkedUnion.add(frameId));
-  });
-
-  if (checkedUnion.size !== selectedIds.size) return false;
-
-  for (const frameId of checkedUnion) {
-    if (!selectedIds.has(frameId)) return false;
-  }
-
-  return true;
-}, [chapters, selectedIds]);
-
 const isAllFramesMode = useMemo(() => {
   return frames.length > 0 && (
     isDefaultAllFramesMode ||
@@ -1437,7 +1414,6 @@ const activeFrames = useMemo(() => {
               isPlaying={isEditorPlaying}
               playbackFrameId={isEditorPlaying && activeFrames[editorCurrentIndex] ? activeFrames[editorCurrentIndex].id : null}
               isAllFramesMode={isAllFramesMode}
-              hasActiveChapterSelection={hasActiveChapterSelection}
             />
           </motion.div>
         ) : (
