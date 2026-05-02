@@ -13,10 +13,11 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
 
   const toggleSelect = useCallback((id: string, shiftKey?: boolean, ctrlKey?: boolean) => {
     let next = new Set(selectedIds);
+    const anchorId = lastSelectedId ?? focusedFrameId;
 
-    if (shiftKey && lastSelectedId) {
+    if (shiftKey && anchorId) {
       const allIds = frames.map(f => f.id);
-      const startIdx = allIds.indexOf(lastSelectedId);
+      const startIdx = allIds.indexOf(anchorId);
       const endIdx = allIds.indexOf(id);
 
       if (startIdx !== -1 && endIdx !== -1) {
@@ -29,6 +30,9 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
           rangeIds.forEach(rid => next.add(rid));
         }
       }
+      if (startIdx === -1 || endIdx === -1) {
+        next = new Set([id]);
+      }
     } else if (ctrlKey) {
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -39,7 +43,11 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
     setSelectedIds(next);
     setLastSelectedId(id);
     setFocusedFrameId(id);
-  }, [frames, lastSelectedId, selectedIds]);
+  }, [focusedFrameId, frames, lastSelectedId, selectedIds]);
+
+  const setSelectionAnchor = useCallback((id: string | null) => {
+    setLastSelectedId(id);
+  }, []);
 
   const selectAll = useCallback(() => {
     options.onBeforeSelectAll?.();
@@ -61,6 +69,7 @@ export function useFrameSelection(frames: Frame[], options: UseFrameSelectionOpt
     selectedIds,
     setSelectedIds,
     lastSelectedId,
+    setSelectionAnchor,
     focusedFrameId,
     setFocusedFrameId,
     toggleSelect,
