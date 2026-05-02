@@ -177,7 +177,9 @@ function SortableFrameItem({
             onFocus();
             if (e.shiftKey || e.ctrlKey || e.metaKey) {
               onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+              return;
             }
+            onNormalClick();
           }}
         >
           {frame.index + 1}
@@ -189,7 +191,9 @@ function SortableFrameItem({
             onFocus();
             if (e.shiftKey || e.ctrlKey || e.metaKey) {
               onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+              return;
             }
+            onNormalClick();
           }}
         >
           {frame?.url && (
