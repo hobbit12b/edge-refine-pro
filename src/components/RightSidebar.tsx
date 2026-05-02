@@ -29,6 +29,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getContrastingTextColor } from '@/utils/chapterColors';
 
 interface RightSidebarProps {
   frames: Frame[];
@@ -54,6 +55,7 @@ interface RightSidebarProps {
   playbackFrameId: string | null;
   chapters: AnimationChapter[];
   isAllFramesMode: boolean;
+  selectionPreviewColor: string | null;
 }
 
 interface SortableFrameItemProps {
@@ -69,7 +71,7 @@ interface SortableFrameItemProps {
   activeId: string | null;
   frames: Frame[];
   chapterColor?: string;
-  hasChapter?: boolean;
+  stripColor: string;
   isAllFramesMode: boolean;
 }
 
@@ -85,7 +87,7 @@ function SortableFrameItem({
   activeId,
   frames,
   chapterColor,
-  hasChapter,
+  stripColor,
   isAllFramesMode,
 }: SortableFrameItemProps) {
   const {
@@ -135,14 +137,14 @@ function SortableFrameItem({
               ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
               : isSelected 
                 ? (isAllFramesMode ? 'border-zinc-600 bg-zinc-700/10 opacity-100' : 'border-purple-600 bg-purple-600/10 opacity-100') 
-                : hasChapter
+                : chapterColor
                   ? 'border-zinc-700/50 opacity-80 bg-zinc-900/10'
                   : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
           ${isDragging ? 'opacity-30 border-dashed border-purple-500 cursor-grabbing' : 'active:cursor-grabbing'}
         `}
         style={{
           borderColor: isFocused ? '#ffffff' : (isSelected && chapterColor ? chapterColor : undefined),
-          backgroundColor: (isSelected || isFocused || hasChapter) && chapterColor ? `${chapterColor}1A` : undefined
+          backgroundColor: (isSelected || isFocused || !!chapterColor) && chapterColor ? `${chapterColor}1A` : undefined
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -154,24 +156,17 @@ function SortableFrameItem({
         {...attributes}
         {...listeners}
       >
-        {hasChapter && (
+        {chapterColor && (
            <div 
              className="absolute top-1 left-1 w-2 h-2 rounded-full z-30 shadow-sm border border-black/20"
              style={{ backgroundColor: chapterColor }}
            />
         )}
         <div 
-          className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
-            isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
-          } cursor-pointer`}
+          className="absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer"
           style={{ 
-            backgroundColor: isFocused 
-              ? (chapterColor || '#9333ea') 
-              : chapterColor 
-                ? chapterColor 
-                : isSelected 
-                  ? (isAllFramesMode ? '#3f3f46' : '#7c3aed') 
-                  : 'rgba(0,0,0,0.6)' 
+            backgroundColor: stripColor,
+            color: getContrastingTextColor(stripColor),
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -243,6 +238,7 @@ export function RightSidebar({
   playbackFrameId,
   chapters,
   isAllFramesMode,
+  selectionPreviewColor,
 }: RightSidebarProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [isModelLoading, setIsModelLoading] = React.useState(false);
@@ -393,12 +389,16 @@ export function RightSidebar({
               >
                 {frames.map((frame) => {
                   const chapter = chapters.find(c => c.frameIds.includes(frame.id));
+                  const isSelected = selectedIds.has(frame.id);
+                  const stripColor = chapter?.color
+                    ?? (isSelected && selectionPreviewColor)
+                    ?? (isAllFramesMode ? '#3f3f46' : 'rgba(0,0,0,0.6)');
                   return (
                     <SortableFrameItem 
                       key={frame.id}
                       frame={frame}
                       isFocused={focusedFrameId === frame.id}
-                      isSelected={selectedIds.has(frame.id)}
+                      isSelected={isSelected}
                       isDuplicate={duplicateIds.has(frame.id)}
                       isPlayingHighlight={isPlaying && playbackFrameId === frame.id}
                       onFocus={() => {
@@ -410,7 +410,7 @@ export function RightSidebar({
                       activeId={activeId}
                       frames={frames}
                       chapterColor={chapter?.color}
-                      hasChapter={!!chapter}
+                      stripColor={stripColor}
                       isAllFramesMode={isAllFramesMode}
                     />
                   );

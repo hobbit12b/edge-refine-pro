@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { serializeProject, deserializeProject } from '@/services/projectService';
 import { toast } from '@/components/ui/use-toast';
 import { cleanupChapters } from '@/utils/cleanupChapters';
+import { getNextChapterColor } from '@/utils/chapterColors';
 
 export default function SpriteMaster() {
   const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
@@ -173,6 +174,17 @@ const activeFrames = useMemo(() => {
     ? frames.filter(f => selectedIds.has(f.id))
     : frames;
 }, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode]);
+
+  const selectionPreviewColor = useMemo(() => {
+    if (selectedIds.size < 2) return null;
+    const selectedIdSet = new Set(selectedIds);
+    const matchingChapter = chapters.find(chapter => {
+      if (chapter.frameIds.length !== selectedIdSet.size) return false;
+      return chapter.frameIds.every(frameId => selectedIdSet.has(frameId));
+    });
+    if (matchingChapter?.color) return matchingChapter.color;
+    return getNextChapterColor(chapters);
+  }, [chapters, selectedIds]);
 
 
   useEffect(() => {
@@ -1355,6 +1367,7 @@ const activeFrames = useMemo(() => {
             <RightSidebar 
               frames={frames}
               chapters={chapters}
+              selectionPreviewColor={selectionPreviewColor}
               selectedIds={selectedIds}
               focusedFrameId={focusedFrameId}
               duplicateIds={duplicateIds}

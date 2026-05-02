@@ -26,6 +26,7 @@ import {
   ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 import { SpriteSheetSettings, Frame, AnimationChapter } from '../types';
+import { CHAPTER_COLORS, getNextChapterColor } from '@/utils/chapterColors';
 
 interface LeftSidebarProps {
   settings: SpriteSheetSettings;
@@ -99,7 +100,7 @@ export function LeftSidebar({
       name: 'Nieuw Hoofdstuk',
       frameIds: Array.from(selectedIds),
       isExpanded: true,
-      color: colors[chapters.length % colors.length]
+      color: getNextChapterColor(chapters)
     };
     onChaptersChange([...chapters, newChapter]);
   };
@@ -156,23 +157,12 @@ export function LeftSidebar({
     }
   };
 
-  const colors = [
-    '#a855f7', // Purple
-    '#3b82f6', // Blue
-    '#10b981', // Emerald
-    '#f59e0b', // Amber
-    '#ef4444', // Red
-    '#ec4899', // Pink
-    '#06b6d4', // Cyan
-    '#8b5cf6', // Violet
-  ];
-
   const updateChapterColor = (id: string, color: string) => {
     onChaptersChange(chapters.map(c => c.id === id ? { ...c, color } : c));
   };
 
   const getChapterColor = (chapter: AnimationChapter, index: number) => {
-     return chapter.color || colors[index % colors.length];
+     return chapter.color || CHAPTER_COLORS[index % CHAPTER_COLORS.length];
   };
 
   return (
@@ -313,7 +303,7 @@ export function LeftSidebar({
                           </button>
                           
                           <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             {colors.map(color => (
+                              {CHAPTER_COLORS.map(color => (
                                <button
                                  key={color}
                                  onClick={(e) => {
