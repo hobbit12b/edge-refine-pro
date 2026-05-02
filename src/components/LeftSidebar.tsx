@@ -48,6 +48,9 @@ interface LeftSidebarProps {
   onLoadProject: (file: File) => void;
   onAddFrames: () => void;
   onReorderChapters: (startIndex: number, endIndex: number) => void;
+  checkedChapterIds: Set<string>;
+  onToggleChapterChecked: (chapterId: string) => void;
+  onDeleteChapter: (chapterId: string) => void;
   // Color removal
   onPickColor: () => void;
   onApplyColorRemoval: () => void;
@@ -80,6 +83,9 @@ export function LeftSidebar({
   onLoadProject,
   onAddFrames,
   onReorderChapters,
+  checkedChapterIds,
+  onToggleChapterChecked,
+  onDeleteChapter,
   onPickColor,
   onApplyColorRemoval,
   onAutoColorRemoval,
@@ -111,10 +117,6 @@ export function LeftSidebar({
 
   const toggleChapter = (chapterId: string) => {
     onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
-  };
-
-  const deleteChapter = (chapterId: string) => {
-    onChaptersChange(chapters.filter(c => c.id !== chapterId));
   };
 
   const startEditing = (id: string, name: string) => {
@@ -261,21 +263,22 @@ export function LeftSidebar({
             {chapters.map((chapter, idx) => {
               const allChapterIds = new Set(chapter.frameIds);
               const isSelected = allChapterIds.size > 0 && Array.from(allChapterIds).every(id => selectedIds.has(id));
+              const isChecked = checkedChapterIds.has(chapter.id);
               const chapterColor = getChapterColor(chapter, idx);
               
               return (
                 <div key={chapter.id} className="space-y-1">
                   <div 
                     className="group flex items-center gap-1 p-1.5 bg-zinc-900/50 rounded-lg border transition-all"
-                    style={{ borderColor: isSelected ? chapterColor : 'rgb(39 39 42)' }}
+                    style={{ borderColor: (isSelected || isChecked) ? chapterColor : 'rgb(39 39 42)' }}
                   >
                     <div className="flex items-center px-0.5 py-1 cursor-pointer" onClick={(e) => {
                       e.stopPropagation();
-                      selectChapterFrames(chapter, true);
+                      onToggleChapterChecked(chapter.id);
                     }}>
                       <input 
                         type="checkbox"
-                        checked={isSelected}
+                        checked={isChecked}
                         onChange={() => {}} // Hit area handled by div
                         style={{ accentColor: chapterColor }}
                         className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 cursor-pointer pointer-events-none"
@@ -338,7 +341,7 @@ export function LeftSidebar({
                         <Edit2 size={10} />
                       </button>
                       <button 
-                        onClick={() => deleteChapter(chapter.id)}
+                        onClick={() => onDeleteChapter(chapter.id)}
                         className="p-0.5 text-zinc-500 hover:text-red-400"
                       >
                         <Trash2 size={10} />

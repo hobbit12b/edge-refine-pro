@@ -38,6 +38,7 @@ export default function SpriteMaster() {
   const [hasProject, setHasProject] = useState(false);
   const [activeBindingId, setActiveBindingId] = useState<string>('default');
   const [chapters, setChapters] = useState<AnimationChapter[]>([]);
+  const [checkedChapterIds, setCheckedChapterIds] = useState<Set<string>>(new Set());
   const [selectionSource, setSelectionSource] = useState<'default-all' | 'manual' | 'chapter'>('default-all');
   const [bindings, setBindings] = useState<KeyBinding[]>([
     { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
@@ -132,6 +133,15 @@ export default function SpriteMaster() {
     }
   }, [chapters]);
 
+  useEffect(() => {
+    setCheckedChapterIds(prev => {
+      if (prev.size === 0) return prev;
+      const validChapterIds = new Set(chapters.map(ch => ch.id));
+      const next = new Set(Array.from(prev).filter(id => validChapterIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [chapters]);
+
   const {
     selectedIds,
     setSelectedIds,
@@ -175,11 +185,19 @@ const isAllFramesMode = useMemo(() => {
 }, [frames.length, selectedIds.size, isDefaultAllFramesMode, hasExplicitSelection]);
 
 const activeFrames = useMemo(() => {
+  if (checkedChapterIds.size > 0) {
+    const checkedFrameIds = new Set(
+      chapters
+        .filter(chapter => checkedChapterIds.has(chapter.id))
+        .flatMap(chapter => chapter.frameIds)
+    );
+    return checkedFrameIds.size > 0 ? frames.filter(f => checkedFrameIds.has(f.id)) : frames;
+  }
   if (isDefaultAllFramesMode || isAllFramesMode) return frames;
   return selectedIds.size > 0
     ? frames.filter(f => selectedIds.has(f.id))
     : frames;
-}, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode]);
+}, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode, checkedChapterIds, chapters]);
 
   const selectionPreviewColor = useMemo(() => {
     if (selectionSource !== 'manual' || selectedIds.size < 1) return null;
@@ -467,6 +485,16 @@ const activeFrames = useMemo(() => {
     setSelectedIds(ids);
     setSelectionSource(ids.size > 0 ? source : 'default-all');
   }, [setSelectedIds]);
+
+  const handleDeleteChapter = useCallback((chapterId: string) => {
+    setChapters(prev => prev.filter(c => c.id !== chapterId));
+    setCheckedChapterIds(prev => {
+      if (!prev.has(chapterId)) return prev;
+      const next = new Set(prev);
+      next.delete(chapterId);
+      return next;
+    });
+  }, []);
 
 
   const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
@@ -1326,6 +1354,16 @@ const activeFrames = useMemo(() => {
               chapters={chapters}
               onChaptersChange={setChapters}
               selectedIds={selectedIds}
+              checkedChapterIds={checkedChapterIds}
+              onToggleChapterChecked={(chapterId) => {
+                setCheckedChapterIds(prev => {
+                  const next = new Set(prev);
+                  if (next.has(chapterId)) next.delete(chapterId);
+                  else next.add(chapterId);
+                  return next;
+                });
+              }}
+              onDeleteChapter={handleDeleteChapter}
               onSelectIds={(ids) => {
                 const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
                 setSelectionWithSource(ids, source);
