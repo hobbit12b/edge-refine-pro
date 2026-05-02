@@ -126,6 +126,7 @@ export function MainPreview({
   const singleSelectedFrameId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
   const manualEditorFrameId = focusedFrameId || singleSelectedFrameId;
   const shouldShowManualEditor = Boolean(
+    !isPlaying &&
     manualEditorFrameId &&
     (!singleSelectedFrameId || manualEditorDismissedForFrameId !== singleSelectedFrameId)
   );
@@ -197,7 +198,7 @@ export function MainPreview({
   }
 
   const focusedFrame = frames.find(f => f.id === focusedFrameId);
-  const currentFrame = isPlaying ? activeFrames[currentIndex % activeFrames.length] : (focusedFrame || activeFrames[currentIndex % activeFrames.length]);
+  const currentFrame = activeFrames[currentIndex % activeFrames.length];
 
   const handleTogglePlay = () => {
     onTogglePlay();
@@ -261,12 +262,14 @@ export function MainPreview({
     if (isPlaying) onTogglePlay();
     const nextIdx = (currentIndex + 1) % activeFrames.length;
     setCurrentIndex(nextIdx);
+    onFocusFrame(activeFrames[nextIdx].id);
   };
 
   const handleStepBack = () => {
     if (isPlaying) onTogglePlay();
     const prevIdx = (currentIndex - 1 + activeFrames.length) % activeFrames.length;
     setCurrentIndex(prevIdx);
+    onFocusFrame(activeFrames[prevIdx].id);
   };
 
   // Auto-fit when entering view

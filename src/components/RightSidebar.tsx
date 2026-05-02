@@ -52,6 +52,7 @@ interface RightSidebarProps {
   isPlaying: boolean;
   playbackFrameId: string | null;
   chapters: AnimationChapter[];
+  isAllFramesMode: boolean;
 }
 
 interface SortableFrameItemProps {
@@ -68,6 +69,7 @@ interface SortableFrameItemProps {
   frames: Frame[];
   chapterColor?: string;
   hasChapter?: boolean;
+  isAllFramesMode: boolean;
 }
 
 function SortableFrameItem({ 
@@ -83,6 +85,7 @@ function SortableFrameItem({
   frames,
   chapterColor,
   hasChapter,
+  isAllFramesMode,
 }: SortableFrameItemProps) {
   const {
     attributes,
@@ -130,7 +133,7 @@ function SortableFrameItem({
             : isFocused 
               ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
               : isSelected 
-                ? 'border-purple-600 bg-purple-600/10 opacity-100' 
+                ? (isAllFramesMode ? 'border-zinc-600 bg-zinc-700/10 opacity-100' : 'border-purple-600 bg-purple-600/10 opacity-100') 
                 : hasChapter
                   ? 'border-zinc-700/50 opacity-80 bg-zinc-900/10'
                   : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
@@ -164,7 +167,7 @@ function SortableFrameItem({
               : chapterColor 
                 ? chapterColor 
                 : isSelected 
-                  ? '#7c3aed' 
+                  ? (isAllFramesMode ? '#3f3f46' : '#7c3aed') 
                   : 'rgba(0,0,0,0.6)' 
           }}
           onClick={(e) => {
@@ -230,6 +233,7 @@ export function RightSidebar({
   isPlaying,
   playbackFrameId,
   chapters,
+  isAllFramesMode,
 }: RightSidebarProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [isModelLoading, setIsModelLoading] = React.useState(false);
@@ -395,6 +399,7 @@ export function RightSidebar({
                       frames={frames}
                       chapterColor={chapter?.color}
                       hasChapter={!!chapter}
+                      isAllFramesMode={isAllFramesMode}
                     />
                   );
                 })}

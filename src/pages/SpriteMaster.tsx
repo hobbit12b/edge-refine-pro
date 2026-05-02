@@ -155,11 +155,20 @@ export default function SpriteMaster() {
     setSelectedIds,
   });
 
+  const isAllFramesMode = useMemo(() => {
+    return frames.length > 0 && (
+      selectedIds.size === frames.length ||
+      (chapters.length === 0 && selectedIds.size === 0)
+    );
+  }, [frames, selectedIds, chapters]);
+
   const activeFrames = useMemo(() => {
+    if (isAllFramesMode) return frames;
     return selectedIds.size > 0 
       ? frames.filter(f => selectedIds.has(f.id))
       : frames;
-  }, [frames, selectedIds]);
+  }, [frames, selectedIds, isAllFramesMode]);
+
 
   useEffect(() => {
     if (isEditorPlaying && activeFrames.length > 0) {
@@ -728,24 +737,41 @@ export default function SpriteMaster() {
         return;
       }
 
-      // Arrow movement (nudging)
+      // Arrow movement / navigation
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-        if (activeView === 'test') return; // Don't nudge in test view
-        
-        if (!(document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement)) {
+        if (activeView === 'test') return;
+
+        const isTextInput = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        if (isTextInput) return;
+
+        const shouldNavigateFrames = activeView === 'editor'
+          && settings.interactionMode === 'none'
+          && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
+          && activeFrames.length > 0;
+
+        if (shouldNavigateFrames) {
           e.preventDefault();
-          const delta = e.shiftKey ? 10 : 1;
-          const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-          
-          if (targetIds.length > 0) {
-            let dx = 0, dy = 0;
-            if (e.key === 'ArrowLeft') dx = -delta;
-            if (e.key === 'ArrowRight') dx = delta;
-            if (e.key === 'ArrowUp') dy = -delta;
-            if (e.key === 'ArrowDown') dy = delta;
-            
-            updateFramesOffset(targetIds, dx, dy);
-          }
+          const currentSafeIndex = ((editorCurrentIndex % activeFrames.length) + activeFrames.length) % activeFrames.length;
+          const nextIndex = e.key === 'ArrowRight'
+            ? (currentSafeIndex + 1) % activeFrames.length
+            : (currentSafeIndex - 1 + activeFrames.length) % activeFrames.length;
+          setEditorCurrentIndex(nextIndex);
+          setFocusedFrameId(activeFrames[nextIndex].id);
+          return;
+        }
+
+        e.preventDefault();
+        const delta = e.shiftKey ? 10 : 1;
+        const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
+
+        if (targetIds.length > 0) {
+          let dx = 0, dy = 0;
+          if (e.key === 'ArrowLeft') dx = -delta;
+          if (e.key === 'ArrowRight') dx = delta;
+          if (e.key === 'ArrowUp') dy = -delta;
+          if (e.key === 'ArrowDown') dy = delta;
+
+          updateFramesOffset(targetIds, dx, dy);
         }
       }
 
@@ -782,7 +808,7 @@ export default function SpriteMaster() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor, settings.interactionMode, activeFrames, editorCurrentIndex]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
@@ -1289,6 +1315,7 @@ export default function SpriteMaster() {
               isPickingColor={isPickingColor}
               onEdgeOp={handleEdgeOp}
               edgeBusy={edgeBusy}
+              isAllFramesMode={isAllFramesMode}
             />
             
             <MainPreview 
@@ -1341,6 +1368,7 @@ export default function SpriteMaster() {
               onUpdateFramesOffset={updateFramesOffset}
               isPlaying={isEditorPlaying}
               playbackFrameId={isEditorPlaying && activeFrames[editorCurrentIndex] ? activeFrames[editorCurrentIndex].id : null}
+              isAllFramesMode={isAllFramesMode}
             />
           </motion.div>
         ) : (
