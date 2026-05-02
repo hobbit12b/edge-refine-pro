@@ -1341,6 +1341,7 @@ const activeFrames = useMemo(() => {
               onDeleteDuplicates={deleteDuplicates}
               onDetectDuplicates={() => handleDetectDuplicates()}
               visualScale={visualScale}
+              activeFrames={activeFrames}
               isPlaying={isEditorPlaying}
               onTogglePlay={() => setIsEditorPlaying(!isEditorPlaying)}
               currentIndex={editorCurrentIndex}

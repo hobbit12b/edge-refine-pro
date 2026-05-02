@@ -21,6 +21,7 @@ import { PlaybackControls } from './PlaybackControls';
 
 interface MainPreviewProps {
   frames: Frame[];
+  activeFrames: Frame[];
   originalFrames: Frame[];
   selectedIds: Set<string>;
   focusedFrameId: string | null;
@@ -48,7 +49,8 @@ interface MainPreviewProps {
 }
 
 export function MainPreview({ 
-  frames, 
+  frames,
+  activeFrames,
   originalFrames,
   selectedIds, 
   focusedFrameId, 
@@ -119,9 +121,6 @@ export function MainPreview({
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  const activeFrames = selectedIds.size > 0 
-    ? frames.filter(f => selectedIds.has(f.id))
-    : frames;
 
   const singleSelectedFrameId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
   const manualEditorFrameId = focusedFrameId || singleSelectedFrameId;
