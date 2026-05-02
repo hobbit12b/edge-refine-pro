@@ -49,7 +49,8 @@ interface MainPreviewProps {
 }
 
 export function MainPreview({ 
-  frames, 
+  frames,
+  activeFrames,
   originalFrames,
   selectedIds, 
   focusedFrameId, 
