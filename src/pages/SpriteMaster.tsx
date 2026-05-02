@@ -40,6 +40,8 @@ export default function SpriteMaster() {
   const [chapters, setChapters] = useState<AnimationChapter[]>([]);
   const [checkedChapterIds, setCheckedChapterIds] = useState<Set<string>>(new Set());
   const [selectionSource, setSelectionSource] = useState<'default-all' | 'manual' | 'chapter'>('default-all');
+  const [isAllFramesChecked, setIsAllFramesChecked] = useState(true);
+  const [allFramesManuallyOverridden, setAllFramesManuallyOverridden] = useState(false);
   const [bindings, setBindings] = useState<KeyBinding[]>([
     { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
     { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
@@ -168,23 +170,28 @@ export default function SpriteMaster() {
     setSelectedIds,
   });
 
-  const isDefaultAllFramesMode = useMemo(() => {
-  return frames.length > 0 && chapters.length === 0;
-}, [frames.length, chapters.length]);
-
 const hasExplicitSelection = useMemo(() => {
   return selectionSource !== 'default-all' && selectedIds.size > 0;
 }, [selectionSource, selectedIds.size]);
 
 
+const hasRealChapterStructure = useMemo(() => {
+  return chapters.length > 1 || chapters.some(chapter => chapter.frameIds.length > 1);
+}, [chapters]);
+
+useEffect(() => {
+  if (!allFramesManuallyOverridden) {
+    setIsAllFramesChecked(!hasRealChapterStructure);
+  }
+}, [allFramesManuallyOverridden, hasRealChapterStructure]);
+
 const isAllFramesMode = useMemo(() => {
-  return frames.length > 0 && (
-    isDefaultAllFramesMode ||
-    (hasExplicitSelection && selectedIds.size === frames.length)
-  );
-}, [frames.length, selectedIds.size, isDefaultAllFramesMode, hasExplicitSelection]);
+  return frames.length > 0 && isAllFramesChecked;
+}, [frames.length, isAllFramesChecked]);
 
 const activeFrames = useMemo(() => {
+  if (isAllFramesChecked) return frames;
+
   if (checkedChapterIds.size > 0) {
     const checkedFrameIds = new Set(
       chapters
@@ -193,11 +200,11 @@ const activeFrames = useMemo(() => {
     );
     return checkedFrameIds.size > 0 ? frames.filter(f => checkedFrameIds.has(f.id)) : frames;
   }
-  if (isDefaultAllFramesMode || isAllFramesMode) return frames;
+
   return selectedIds.size > 0
     ? frames.filter(f => selectedIds.has(f.id))
     : frames;
-}, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode, checkedChapterIds, chapters]);
+}, [frames, selectedIds, isAllFramesChecked, checkedChapterIds, chapters]);
 
   const selectionPreviewColor = useMemo(() => {
     if (selectionSource !== 'manual' || selectedIds.size < 1) return null;
@@ -288,6 +295,8 @@ const activeFrames = useMemo(() => {
         setActiveBindingId('default');
         setSelectedIds(new Set());
         setSelectionSource('default-all');
+    setIsAllFramesChecked(true);
+    setAllFramesManuallyOverridden(false);
         setHasProject(true);
         
         if (extracted.length > 0) {
@@ -328,6 +337,8 @@ const activeFrames = useMemo(() => {
 
       setSettings(projectData.settings);
       if (projectData.chapters) setChapters(projectData.chapters);
+      setIsAllFramesChecked(true);
+      setAllFramesManuallyOverridden(false);
       if (projectData.bindings) {
         const migrated = projectData.bindings.map((b: any) => ({
           ...b,
@@ -341,6 +352,8 @@ const activeFrames = useMemo(() => {
       setOriginalFrames(loadedFrames);
       setSelectedIds(new Set());
       setSelectionSource('default-all');
+    setIsAllFramesChecked(true);
+    setAllFramesManuallyOverridden(false);
       setHasProject(true);
     } catch (error) {
       console.error("Load Project Failed:", error);
@@ -445,6 +458,8 @@ const activeFrames = useMemo(() => {
         setActiveBindingId('default');
         setSelectedIds(new Set());
         setSelectionSource('default-all');
+    setIsAllFramesChecked(true);
+    setAllFramesManuallyOverridden(false);
         if (slicedFrames.length > 0) {
           setFocusedFrameId(slicedFrames[0].id);
           setSettings(prev => ({
@@ -528,6 +543,8 @@ const activeFrames = useMemo(() => {
     setProgress(0);
     resetSelection();
     setSelectionSource('default-all');
+    setIsAllFramesChecked(true);
+    setAllFramesManuallyOverridden(false);
     setActiveView('editor');
     clearHistory();
     setDuplicateIds(new Set());
@@ -1396,6 +1413,10 @@ const activeFrames = useMemo(() => {
               onEdgeOp={handleEdgeOp}
               edgeBusy={edgeBusy}
               isAllFramesMode={isAllFramesMode}
+              onAllFramesToggle={() => {
+                setIsAllFramesChecked(prev => !prev);
+                setAllFramesManuallyOverridden(true);
+              }}
             />
             
             <MainPreview 
