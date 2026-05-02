@@ -175,15 +175,36 @@ const hasExplicitSelection = useMemo(() => {
 }, [selectionSource, selectedIds.size]);
 
 
-const hasRealChapterStructure = useMemo(() => {
-  return chapters.length > 1 || chapters.some(chapter => chapter.frameIds.length > 1);
-}, [chapters]);
+const checkedChapters = useMemo(
+  () => chapters.filter(chapter => checkedChapterIds.has(chapter.id)),
+  [chapters, checkedChapterIds]
+);
+
+const hasRealCheckedChapterStructure = useMemo(() => {
+  return (
+    checkedChapters.length > 1 ||
+    checkedChapters.some(chapter => chapter.frameIds.length > 1)
+  );
+}, [checkedChapters]);
+
+const isDefaultAllCheckedChapterState = useMemo(() => {
+  return (
+    checkedChapters.length === 0 ||
+    (checkedChapters.length === 1 && checkedChapters[0].frameIds.length === 1)
+  );
+}, [checkedChapters]);
+
+useEffect(() => {
+  if (isDefaultAllCheckedChapterState && allFramesManuallyOverridden) {
+    setAllFramesManuallyOverridden(false);
+  }
+}, [allFramesManuallyOverridden, isDefaultAllCheckedChapterState]);
 
 useEffect(() => {
   if (!allFramesManuallyOverridden) {
-    setIsAllFramesChecked(!hasRealChapterStructure);
+    setIsAllFramesChecked(!hasRealCheckedChapterStructure);
   }
-}, [allFramesManuallyOverridden, hasRealChapterStructure]);
+}, [allFramesManuallyOverridden, hasRealCheckedChapterStructure]);
 
 const isAllFramesMode = useMemo(() => {
   return frames.length > 0 && isAllFramesChecked;
