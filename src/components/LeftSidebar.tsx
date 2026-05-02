@@ -61,6 +61,7 @@ interface LeftSidebarProps {
   onEdgeOp: (op: 'erode' | 'dilate' | 'feather' | 'decontaminate') => void;
   edgeBusy: boolean;
   isAllFramesMode: boolean;
+  onAllFramesToggle: () => void;
   selectionPreviewColor: string | null;
 }
 
@@ -95,6 +96,7 @@ export function LeftSidebar({
   onEdgeOp,
   edgeBusy,
   isAllFramesMode,
+  onAllFramesToggle,
   selectionPreviewColor,
 }: LeftSidebarProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -239,11 +241,7 @@ export function LeftSidebar({
             <div className="group flex items-center gap-1 p-1.5 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-lg border border-zinc-800 transition-all">
               <div className="flex items-center px-1 py-1 cursor-pointer" onClick={(e) => {
                 e.stopPropagation();
-                if (isAllFramesMode) {
-                  onSelectIds(new Set());
-                } else {
-                  onSelectIds(new Set(frames.map(f => f.id)));
-                }
+                onAllFramesToggle();
               }}>
                 <input 
                   type="checkbox"
@@ -253,7 +251,7 @@ export function LeftSidebar({
                 />
               </div>
               <button 
-                onClick={() => onSelectIds(new Set(frames.map(f => f.id)))}
+                onClick={onAllFramesToggle}
                 className="flex-1 text-left text-[10px] font-bold text-zinc-300 hover:text-white truncate py-0.5"
               >
                 Alle Frames
