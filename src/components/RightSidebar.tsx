@@ -146,7 +146,9 @@ function SortableFrameItem({
         onClick={(e) => {
           e.stopPropagation();
           onFocus();
-          onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+          }
         }}
         {...attributes}
         {...listeners}
@@ -182,7 +184,9 @@ function SortableFrameItem({
           onClick={(e) => {
             e.stopPropagation();
             onFocus();
-            onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+              onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+            }
           }}
         >
           {frame?.url && (
