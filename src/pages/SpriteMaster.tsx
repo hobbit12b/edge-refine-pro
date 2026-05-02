@@ -38,6 +38,7 @@ export default function SpriteMaster() {
   const [hasProject, setHasProject] = useState(false);
   const [activeBindingId, setActiveBindingId] = useState<string>('default');
   const [chapters, setChapters] = useState<AnimationChapter[]>([]);
+  const [selectionSource, setSelectionSource] = useState<'default-all' | 'manual' | 'chapter'>('default-all');
   const [bindings, setBindings] = useState<KeyBinding[]>([
     { id: 'default', keys: ['default'], label: 'Rust (Idle)', chapterId: null, mirror: false, holdToPlay: false, loop: true, finishAnimation: false },
     { id: 'walk-right', keys: ['ArrowRight'], label: 'Lopen Rechts', chapterId: null, mirror: false, holdToPlay: true, loop: true, finishAnimation: false },
@@ -161,12 +162,16 @@ export default function SpriteMaster() {
   return frames.length > 0 && chapters.length === 0;
 }, [frames.length, chapters.length]);
 
+const hasExplicitSelection = useMemo(() => {
+  return selectionSource !== 'default-all' && selectedIds.size > 0;
+}, [selectionSource, selectedIds.size]);
+
 const isAllFramesMode = useMemo(() => {
   return frames.length > 0 && (
     isDefaultAllFramesMode ||
-    selectedIds.size === frames.length
+    (hasExplicitSelection && selectedIds.size === frames.length)
   );
-}, [frames.length, selectedIds.size, isDefaultAllFramesMode]);
+}, [frames.length, selectedIds.size, isDefaultAllFramesMode, hasExplicitSelection]);
 
 const activeFrames = useMemo(() => {
   if (isDefaultAllFramesMode || isAllFramesMode) return frames;
@@ -176,7 +181,7 @@ const activeFrames = useMemo(() => {
 }, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode]);
 
   const selectionPreviewColor = useMemo(() => {
-    if (selectedIds.size < 2) return null;
+    if (!hasExplicitSelection || selectedIds.size < 2) return null;
     const selectedIdSet = new Set(selectedIds);
     const matchingChapter = chapters.find(chapter => {
       if (chapter.frameIds.length !== selectedIdSet.size) return false;
@@ -184,7 +189,7 @@ const activeFrames = useMemo(() => {
     });
     if (matchingChapter?.color) return matchingChapter.color;
     return getNextChapterColor(chapters);
-  }, [chapters, selectedIds]);
+  }, [chapters, hasExplicitSelection, selectedIds]);
 
 
   useEffect(() => {
@@ -262,8 +267,8 @@ const activeFrames = useMemo(() => {
           { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
         ]);
         setActiveBindingId('default');
-        const allIds = extracted.map(f => f.id);
-        setSelectedIds(new Set(allIds));
+        setSelectedIds(new Set());
+        setSelectionSource('default-all');
         setHasProject(true);
         
         if (extracted.length > 0) {
@@ -316,6 +321,7 @@ const activeFrames = useMemo(() => {
       setFrames(loadedFrames);
       setOriginalFrames(loadedFrames);
       setSelectedIds(new Set());
+      setSelectionSource('default-all');
       setHasProject(true);
     } catch (error) {
       console.error("Load Project Failed:", error);
@@ -418,7 +424,8 @@ const activeFrames = useMemo(() => {
           { id: 'jump', keys: [' '], label: 'Springen', chapterId: null, mirror: false, holdToPlay: false, loop: false, finishAnimation: true },
         ]);
         setActiveBindingId('default');
-        setSelectedIds(new Set(slicedFrames.map(f => f.id)));
+        setSelectedIds(new Set());
+        setSelectionSource('default-all');
         if (slicedFrames.length > 0) {
           setFocusedFrameId(slicedFrames[0].id);
           setSettings(prev => ({
@@ -455,6 +462,11 @@ const activeFrames = useMemo(() => {
     deselectAll();
   }, [pushToHistory, deselectAll]);
 
+  const setSelectionWithSource = useCallback((ids: Set<string>, source: 'default-all' | 'manual' | 'chapter') => {
+    setSelectedIds(ids);
+    setSelectionSource(ids.size > 0 ? source : 'default-all');
+  }, [setSelectedIds]);
+
 
   const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
     const validFrameIds = new Set(nextFrames.map((frame) => frame.id));
@@ -486,6 +498,7 @@ const activeFrames = useMemo(() => {
     setIsExtracting(false);
     setProgress(0);
     resetSelection();
+    setSelectionSource('default-all');
     setActiveView('editor');
     clearHistory();
     setDuplicateIds(new Set());
@@ -1246,8 +1259,11 @@ const activeFrames = useMemo(() => {
               focusedFrameId={focusedFrameId}
               chapters={chapters}
               onChaptersChange={setChapters}
-              selectedIds={selectedIds}
-              onSelectIds={setSelectedIds}
+              selectedIds={hasExplicitSelection ? selectedIds : new Set<string>()}
+              onSelectIds={(ids) => {
+                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
+                setSelectionWithSource(ids, source);
+              }}
               onFocusFrame={setFocusedFrameId}
               onBack={() => setActiveView('editor')}
               onSettingsChange={setSettings}
@@ -1308,7 +1324,10 @@ const activeFrames = useMemo(() => {
               chapters={chapters}
               onChaptersChange={setChapters}
               selectedIds={selectedIds}
-              onSelectIds={setSelectedIds}
+              onSelectIds={(ids) => {
+                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
+                setSelectionWithSource(ids, source);
+              }}
               onSettingsChange={setSettings} 
               onStartOver={handleStartOver}
               removalState={removalState}
@@ -1373,11 +1392,14 @@ const activeFrames = useMemo(() => {
               duplicateIds={duplicateIds}
               settings={settings}
               videoFile={videoFile}
-              onToggleSelect={toggleSelect}
+              onToggleSelect={(id, shift, ctrl) => {
+                toggleSelect(id, shift, ctrl);
+                setSelectionSource('manual');
+              }}
               onFocusFrame={setFocusedFrameId}
               onSetSelectionAnchor={(id) => setSelectionAnchor(id)}
-              onSelectAll={selectAllWithHistory}
-              onDeselectAll={deselectAllWithHistory}
+              onSelectAll={() => { selectAllWithHistory(); setSelectionSource('manual'); }}
+              onDeselectAll={() => { deselectAllWithHistory(); setSelectionSource('default-all'); }}
               onUpdateDuration={updateDuration}
               onSettingsChange={setSettings}
               onClearAll={handleStartOver}
