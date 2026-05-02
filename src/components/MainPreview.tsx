@@ -21,6 +21,7 @@ import { PlaybackControls } from './PlaybackControls';
 
 interface MainPreviewProps {
   frames: Frame[];
+  activeFrames: Frame[];
   originalFrames: Frame[];
   selectedIds: Set<string>;
   focusedFrameId: string | null;
