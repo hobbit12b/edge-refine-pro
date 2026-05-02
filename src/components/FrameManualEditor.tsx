@@ -557,10 +557,10 @@ export function FrameManualEditor({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900 shadow-xl z-20">
-        <div className="flex items-center gap-3">
+      <div className="p-3 border-b border-zinc-800 bg-zinc-900 shadow-xl z-20">
+        <div className="inline-grid grid-cols-[auto_auto] gap-x-4 gap-y-2 items-start">
           <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-            <button 
+            <button
               onClick={() => onSettingsChange({ ...settings, brushMode: 'erase' })}
               className={`p-1.5 rounded-lg flex items-center gap-2 px-4 transition-all ${settings.brushMode === 'erase' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               title="Gum Mode (E)"
@@ -568,7 +568,7 @@ export function FrameManualEditor({
               <Eraser size={14} />
               <span className="text-[10px] font-black uppercase tracking-tight">Gum</span>
             </button>
-            <button 
+            <button
               onClick={() => onSettingsChange({ ...settings, brushMode: 'restore', showGhost: true })}
               className={`p-1.5 rounded-lg flex items-center gap-2 px-4 transition-all ${settings.brushMode === 'restore' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               title="Herstel Mode (R)"
@@ -576,7 +576,9 @@ export function FrameManualEditor({
               <RotateCcw size={14} />
               <span className="text-[10px] font-black uppercase tracking-tight">Herstel</span>
             </button>
-            <div className="h-8 w-px bg-zinc-800 mx-1" />
+          </div>
+
+          <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
             {([
               { mode: 'brush', label: 'Penseel', Icon: Pencil, title: 'Penseel (B)' },
               { mode: 'lasso', label: 'Lasso', Icon: Lasso, title: 'Lasso (L)' },
@@ -612,62 +614,65 @@ export function FrameManualEditor({
       </div>
 
       <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-900">
-        <div className="flex items-center gap-4">
-          {(settings.interactionMode === 'brush') && (
-            <div className="flex items-center gap-3 px-1">
-              <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
-              <div className="flex items-center gap-3">
+        <div className="inline-grid grid-cols-[auto_auto] gap-x-4 items-center">
+          <div aria-hidden="true" />
+          <div className="flex items-center gap-4">
+            {(settings.interactionMode === 'brush') && (
+              <div className="flex items-center gap-3 px-1">
+                <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Grootte</span>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={settings.brushSize}
+                    onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
+                    className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
+                </div>
+              </div>
+            )}
+
+            {areaMode === 'wand' && (
+              <div className="flex items-center gap-3 px-1">
+                <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Tolerantie</span>
                 <input
                   type="range"
-                  min="1"
-                  max="50"
-                  value={settings.brushSize}
-                  onChange={(e) => onSettingsChange({ ...settings, brushSize: parseInt(e.target.value) })}
+                  min="0"
+                  max="100"
+                  value={settings.colorTolerance}
+                  onChange={(e) => onSettingsChange({ ...settings, colorTolerance: parseInt(e.target.value) })}
                   className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
                 />
-                <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.brushSize}px</span>
+                <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.colorTolerance}</span>
               </div>
+            )}
+
+            <div className="h-6 w-px bg-zinc-800 mx-1" />
+            <div className="flex items-center gap-4 px-1">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${settings.antiAlias ? 'bg-purple-600 border-purple-500' : 'bg-zinc-800 border-zinc-700 group-hover:border-zinc-500'}`}>
+                  {settings.antiAlias && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={settings.antiAlias}
+                    onChange={(e) => onSettingsChange({ ...settings, antiAlias: e.target.checked })}
+                  />
+                </div>
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-zinc-200">Anti-Alias</span>
+              </label>
+
+              <button
+                onClick={() => onSettingsChange({ ...settings, showGhost: !settings.showGhost })}
+                className={`p-1.5 rounded-lg flex items-center gap-2 px-3 border transition-all ${settings.showGhost ? 'bg-zinc-100 text-black border-white' : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:text-zinc-300'}`}
+                title="Ghosting Effect (T)"
+              >
+                <Ghost size={14} className={settings.showGhost ? 'opacity-100' : 'opacity-40'} />
+                <span className="text-[9px] font-black uppercase tracking-tight">Ghosting</span>
+              </button>
             </div>
-          )}
-
-          {areaMode === 'wand' && (
-            <div className="flex items-center gap-3 px-1">
-              <span className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Tolerantie</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.colorTolerance}
-                onChange={(e) => onSettingsChange({ ...settings, colorTolerance: parseInt(e.target.value) })}
-                className="w-32 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-              <span className="text-[10px] text-zinc-300 font-mono font-bold w-8">{settings.colorTolerance}</span>
-            </div>
-          )}
-
-          <div className="h-6 w-px bg-zinc-800 mx-1" />
-          <div className="flex items-center gap-4 px-1">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${settings.antiAlias ? 'bg-purple-600 border-purple-500' : 'bg-zinc-800 border-zinc-700 group-hover:border-zinc-500'}`}>
-                {settings.antiAlias && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                <input 
-                  type="checkbox" 
-                  className="hidden"
-                  checked={settings.antiAlias}
-                  onChange={(e) => onSettingsChange({ ...settings, antiAlias: e.target.checked })}
-                />
-              </div>
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest group-hover:text-zinc-200">Anti-Alias</span>
-            </label>
-
-            <button
-               onClick={() => onSettingsChange({ ...settings, showGhost: !settings.showGhost })}
-               className={`p-1.5 rounded-lg flex items-center gap-2 px-3 border transition-all ${settings.showGhost ? 'bg-zinc-100 text-black border-white' : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:text-zinc-300'}`}
-               title="Ghosting Effect (T)"
-            >
-              <Ghost size={14} className={settings.showGhost ? 'opacity-100' : 'opacity-40'} />
-              <span className="text-[9px] font-black uppercase tracking-tight">Ghosting</span>
-            </button>
           </div>
         </div>
       </div>
