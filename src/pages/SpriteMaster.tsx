@@ -175,15 +175,24 @@ const hasExplicitSelection = useMemo(() => {
 }, [selectionSource, selectedIds.size]);
 
 
-const hasRealChapterStructure = useMemo(() => {
-  return chapters.length > 1 || chapters.some(chapter => chapter.frameIds.length > 1);
-}, [chapters]);
+const checkedChapters = useMemo(() => {
+  return chapters.filter(chapter => checkedChapterIds.has(chapter.id));
+}, [chapters, checkedChapterIds]);
+
+const hasRealCheckedChapterStructure = useMemo(() => {
+  return checkedChapters.length > 1 || checkedChapters.some(chapter => chapter.frameIds.length > 1);
+}, [checkedChapters]);
 
 useEffect(() => {
-  if (!allFramesManuallyOverridden) {
-    setIsAllFramesChecked(!hasRealChapterStructure);
+  if (!hasRealCheckedChapterStructure) {
+    setIsAllFramesChecked(true);
+    return;
   }
-}, [allFramesManuallyOverridden, hasRealChapterStructure]);
+
+  if (!allFramesManuallyOverridden) {
+    setIsAllFramesChecked(false);
+  }
+}, [allFramesManuallyOverridden, hasRealCheckedChapterStructure]);
 
 const isAllFramesMode = useMemo(() => {
   return frames.length > 0 && isAllFramesChecked;
