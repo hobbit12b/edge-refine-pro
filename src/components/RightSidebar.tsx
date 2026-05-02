@@ -313,11 +313,7 @@ export function RightSidebar({
       return chapter.frameIds.every((frameId) => selectedIds.has(frameId));
     });
   }, [chapters, selectedIds, selectedIdsKey]);
-  const hasActiveSelectionScope =
-    selectedIds.size > 1 ||
-    hasMatchingChapterSelection ||
-    (frames.length > 0 && selectedIds.size === frames.length) ||
-    isAllFramesMode;
+  const shouldPreserveChapterSelectionOnPlainClick = hasMatchingChapterSelection;
 
   return (
     <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col h-full overflow-hidden">
@@ -427,7 +423,7 @@ export function RightSidebar({
                         onSetSelectionAnchor(frame.id);
                       }}
                       onNormalClick={() => {
-                        if (!hasActiveSelectionScope) {
+                        if (!shouldPreserveChapterSelectionOnPlainClick) {
                           onToggleSelect(frame.id, false, false);
                         }
                       }}
