@@ -51,6 +51,7 @@ interface LeftSidebarProps {
   checkedChapterIds: Set<string>;
   onToggleChapterChecked: (chapterId: string) => void;
   onDeleteChapter: (chapterId: string) => void;
+  onChapterCreated: (chapterId: string) => void;
   // Color removal
   onPickColor: () => void;
   onApplyColorRemoval: () => void;
@@ -86,6 +87,7 @@ export function LeftSidebar({
   checkedChapterIds,
   onToggleChapterChecked,
   onDeleteChapter,
+  onChapterCreated,
   onPickColor,
   onApplyColorRemoval,
   onAutoColorRemoval,
@@ -113,6 +115,7 @@ export function LeftSidebar({
       color: selectionPreviewColor ?? getNextChapterColor(chapters)
     };
     onChaptersChange([...chapters, newChapter]);
+    onChapterCreated(newChapter.id);
   };
 
   const toggleChapter = (chapterId: string) => {

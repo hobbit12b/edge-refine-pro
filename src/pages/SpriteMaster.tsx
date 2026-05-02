@@ -1364,6 +1364,9 @@ const activeFrames = useMemo(() => {
                 });
               }}
               onDeleteChapter={handleDeleteChapter}
+              onChapterCreated={(chapterId) => {
+                setCheckedChapterIds(prev => new Set([...prev, chapterId]));
+              }}
               onSelectIds={(ids) => {
                 const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
                 setSelectionWithSource(ids, source);
