@@ -391,8 +391,12 @@ export function RightSidebar({
                   const chapter = chapters.find(c => c.frameIds.includes(frame.id));
                   const isSelected = selectedIds.has(frame.id);
                   const stripColor = chapter?.color
-                    ?? (isSelected && selectionPreviewColor)
-                    ?? (isAllFramesMode ? '#3f3f46' : 'rgba(0,0,0,0.6)');
+                    ? chapter.color
+                    : (isSelected && selectionPreviewColor)
+                      ? selectionPreviewColor
+                      : isAllFramesMode
+                        ? '#3f3f46'
+                        : 'rgba(0,0,0,0.6)';
                   return (
                     <SortableFrameItem 
                       key={frame.id}
