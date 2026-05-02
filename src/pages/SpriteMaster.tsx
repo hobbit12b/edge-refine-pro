@@ -155,19 +155,23 @@ export default function SpriteMaster() {
     setSelectedIds,
   });
 
-  const isAllFramesMode = useMemo(() => {
-    return frames.length > 0 && (
-      selectedIds.size === frames.length ||
-      (chapters.length === 0 && selectedIds.size === 0)
-    );
-  }, [frames, selectedIds, chapters]);
+  const isDefaultAllFramesMode = useMemo(() => {
+  return frames.length > 0 && chapters.length === 0;
+}, [frames.length, chapters.length]);
 
-  const activeFrames = useMemo(() => {
-    if (isAllFramesMode) return frames;
-    return selectedIds.size > 0 
-      ? frames.filter(f => selectedIds.has(f.id))
-      : frames;
-  }, [frames, selectedIds, isAllFramesMode]);
+const isAllFramesMode = useMemo(() => {
+  return frames.length > 0 && (
+    isDefaultAllFramesMode ||
+    selectedIds.size === frames.length
+  );
+}, [frames.length, selectedIds.size, isDefaultAllFramesMode]);
+
+const activeFrames = useMemo(() => {
+  if (isDefaultAllFramesMode || isAllFramesMode) return frames;
+  return selectedIds.size > 0
+    ? frames.filter(f => selectedIds.has(f.id))
+    : frames;
+}, [frames, selectedIds, isDefaultAllFramesMode, isAllFramesMode]);
 
 
   useEffect(() => {
