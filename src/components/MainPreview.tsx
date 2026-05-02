@@ -46,6 +46,8 @@ interface MainPreviewProps {
   steps: any[];
   isPickingColor?: boolean;
   onColorPick?: (frameId: string, x: number, y: number) => void;
+  prePlaybackFocusedFrameId: string | null;
+  onConsumePrePlaybackFocus: () => void;
 }
 
 export function MainPreview({ 
@@ -75,6 +77,8 @@ export function MainPreview({
   steps,
   isPickingColor,
   onColorPick,
+  prePlaybackFocusedFrameId,
+  onConsumePrePlaybackFocus,
 }: MainPreviewProps) {
   const isSpacePressedRef = useRef(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false); // keep state for UI re-render (cursor etc)
@@ -82,7 +86,6 @@ export function MainPreview({
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [manualEditorDismissedForFrameId, setManualEditorDismissedForFrameId] = useState<string | null>(null);
-  const [prePlaybackIndex, setPrePlaybackIndex] = useState<number | null>(null);
 
   // Sync initial pan offset from settings
   useEffect(() => {
@@ -137,15 +140,7 @@ export function MainPreview({
   
   useEffect(() => {
     setCurrentIndex(0);
-    setPrePlaybackIndex(null);
   }, [selectedIds.size]);
-
-  useEffect(() => {
-    if (prePlaybackIndex === null) return;
-    if (activeFrames.length === 0 || prePlaybackIndex < 0 || prePlaybackIndex >= activeFrames.length) {
-      setPrePlaybackIndex(null);
-    }
-  }, [activeFrames, prePlaybackIndex]);
 
   useEffect(() => {
     if (selectedIds.size !== 1) {
@@ -209,18 +204,6 @@ export function MainPreview({
   const currentFrame = activeFrames[currentIndex % activeFrames.length];
 
   const handleTogglePlay = () => {
-    if (!isPlaying) {
-      const focusedIndex = focusedFrameId
-        ? activeFrames.findIndex((frame) => frame.id === focusedFrameId)
-        : -1;
-
-      if (focusedIndex >= 0) {
-        setPrePlaybackIndex(focusedIndex);
-      } else {
-        setPrePlaybackIndex(null);
-      }
-    }
-
     onTogglePlay();
     if (!isPlaying && settings.interactionMode !== 'none') {
       updateSetting('interactionMode', 'none');
@@ -280,20 +263,28 @@ export function MainPreview({
 
   const handleStepForward = () => {
     if (isPlaying) onTogglePlay();
-    const baseIndex = prePlaybackIndex ?? currentIndex;
-    const nextIdx = (baseIndex + 1) % activeFrames.length;
+    const baseFrameId = prePlaybackFocusedFrameId ?? focusedFrameId;
+    const baseIndex = baseFrameId
+      ? activeFrames.findIndex((frame) => frame.id === baseFrameId)
+      : currentIndex;
+    const safeBaseIndex = baseIndex >= 0 ? baseIndex : currentIndex;
+    const nextIdx = (safeBaseIndex + 1) % activeFrames.length;
     setCurrentIndex(nextIdx);
     onFocusFrame(activeFrames[nextIdx].id);
-    if (prePlaybackIndex !== null) setPrePlaybackIndex(null);
+    if (prePlaybackFocusedFrameId) onConsumePrePlaybackFocus();
   };
 
   const handleStepBack = () => {
     if (isPlaying) onTogglePlay();
-    const baseIndex = prePlaybackIndex ?? currentIndex;
-    const prevIdx = (baseIndex - 1 + activeFrames.length) % activeFrames.length;
+    const baseFrameId = prePlaybackFocusedFrameId ?? focusedFrameId;
+    const baseIndex = baseFrameId
+      ? activeFrames.findIndex((frame) => frame.id === baseFrameId)
+      : currentIndex;
+    const safeBaseIndex = baseIndex >= 0 ? baseIndex : currentIndex;
+    const prevIdx = (safeBaseIndex - 1 + activeFrames.length) % activeFrames.length;
     setCurrentIndex(prevIdx);
     onFocusFrame(activeFrames[prevIdx].id);
-    if (prePlaybackIndex !== null) setPrePlaybackIndex(null);
+    if (prePlaybackFocusedFrameId) onConsumePrePlaybackFocus();
   };
 
   // Auto-fit when entering view
