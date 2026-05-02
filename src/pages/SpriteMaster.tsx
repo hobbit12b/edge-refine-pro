@@ -135,6 +135,7 @@ export default function SpriteMaster() {
     setSelectedIds,
     focusedFrameId,
     setFocusedFrameId,
+    setSelectionAnchor,
     toggleSelect,
     selectAll,
     deselectAll,
@@ -1361,6 +1362,7 @@ const activeFrames = useMemo(() => {
               videoFile={videoFile}
               onToggleSelect={toggleSelect}
               onFocusFrame={setFocusedFrameId}
+              onSetSelectionAnchor={(id) => setSelectionAnchor(id)}
               onSelectAll={selectAllWithHistory}
               onDeselectAll={deselectAllWithHistory}
               onUpdateDuration={updateDuration}

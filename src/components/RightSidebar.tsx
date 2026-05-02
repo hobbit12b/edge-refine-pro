@@ -39,6 +39,7 @@ interface RightSidebarProps {
   videoFile: File | null;
   onToggleSelect: (id: string, shiftKey?: boolean, ctrlKey?: boolean) => void;
   onFocusFrame: (id: string) => void;
+  onSetSelectionAnchor: (id: string) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onUpdateDuration: (id: string, delta: number) => void;
@@ -174,7 +175,10 @@ function SortableFrameItem({
           }}
           onClick={(e) => {
             e.stopPropagation();
-            onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+            onFocus();
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+              onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
+            }
           }}
         >
           {frame.index + 1}
@@ -224,6 +228,7 @@ export function RightSidebar({
   videoFile,
   onToggleSelect,
   onFocusFrame,
+  onSetSelectionAnchor,
   onSettingsChange,
   onClearAll,
   onDetectDuplicates,
@@ -396,7 +401,10 @@ export function RightSidebar({
                       isSelected={selectedIds.has(frame.id)}
                       isDuplicate={duplicateIds.has(frame.id)}
                       isPlayingHighlight={isPlaying && playbackFrameId === frame.id}
-                      onFocus={() => onFocusFrame(frame.id)}
+                      onFocus={() => {
+                        onFocusFrame(frame.id);
+                        onSetSelectionAnchor(frame.id);
+                      }}
                       onToggle={(shift, ctrl) => onToggleSelect(frame.id, shift, ctrl)}
                       gridSize={settings.frameGridSize}
                       activeId={activeId}
