@@ -15,6 +15,8 @@ export const getNextChapterColor = (chapters: AnimationChapter[]) =>
   CHAPTER_COLORS[chapters.length % CHAPTER_COLORS.length];
 
 export const getContrastingTextColor = (backgroundHex: string, light = '#ffffff', dark = '#111827') => {
+  if (typeof backgroundHex !== 'string') return light;
+
   const hex = backgroundHex.replace('#', '').trim();
   const normalized = hex.length === 3
     ? hex.split('').map(ch => `${ch}${ch}`).join('')
