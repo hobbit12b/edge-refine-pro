@@ -272,7 +272,7 @@ export function LeftSidebar({
                 <div key={chapter.id} className="space-y-1">
                   <div 
                     className="group flex items-center gap-1 p-1.5 bg-zinc-900/50 rounded-lg border transition-all"
-                    style={{ borderColor: (isSelected || isChecked) ? chapterColor : 'rgb(39 39 42)' }}
+                    style={{ borderColor: chapterColor }}
                   >
                     <div className="flex items-center px-0.5 py-1 cursor-pointer" onClick={(e) => {
                       e.stopPropagation();

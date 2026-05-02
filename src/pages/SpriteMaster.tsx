@@ -108,6 +108,7 @@ export default function SpriteMaster() {
   // Global Editor Playback State
   const [isEditorPlaying, setIsEditorPlaying] = useState(false);
   const [editorCurrentIndex, setEditorCurrentIndex] = useState(0);
+  const [prePlaybackFocusedFrameId, setPrePlaybackFocusedFrameId] = useState<string | null>(null);
 
   useEffect(() => {
     if (chapters.length > 0) {
@@ -250,6 +251,14 @@ const activeFrames = useMemo(() => {
       return () => clearTimeout(timer);
     }
   }, [isEditorPlaying, activeFrames, editorCurrentIndex, settings.fps]);
+
+
+  const handleEditorTogglePlay = useCallback(() => {
+    setIsEditorPlaying(prev => {
+      if (!prev) setPrePlaybackFocusedFrameId(focusedFrameId);
+      return !prev;
+    });
+  }, [focusedFrameId]);
 
   useEffect(() => {
     // Focus the app container on mount to enable shortcuts immediately
@@ -848,12 +857,19 @@ const activeFrames = useMemo(() => {
 
         if (shouldNavigateFrames) {
           e.preventDefault();
-          const currentSafeIndex = ((editorCurrentIndex % activeFrames.length) + activeFrames.length) % activeFrames.length;
+          const baseFrameId = prePlaybackFocusedFrameId ?? focusedFrameId;
+          const baseIndex = baseFrameId
+            ? activeFrames.findIndex((frame) => frame.id === baseFrameId)
+            : editorCurrentIndex;
+          const currentSafeIndex = baseIndex >= 0
+            ? baseIndex
+            : ((editorCurrentIndex % activeFrames.length) + activeFrames.length) % activeFrames.length;
           const nextIndex = e.key === 'ArrowRight'
             ? (currentSafeIndex + 1) % activeFrames.length
             : (currentSafeIndex - 1 + activeFrames.length) % activeFrames.length;
           setEditorCurrentIndex(nextIndex);
           setFocusedFrameId(activeFrames[nextIndex].id);
+          if (prePlaybackFocusedFrameId) setPrePlaybackFocusedFrameId(null);
           return;
         }
 
@@ -905,7 +921,7 @@ const activeFrames = useMemo(() => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor, settings.interactionMode, activeFrames, editorCurrentIndex]);
+  }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor, settings.interactionMode, activeFrames, editorCurrentIndex, prePlaybackFocusedFrameId]);
 
   const handleRemoveBackground = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
@@ -1461,12 +1477,14 @@ const activeFrames = useMemo(() => {
               visualScale={visualScale}
               activeFrames={activeFrames}
               isPlaying={isEditorPlaying}
-              onTogglePlay={() => setIsEditorPlaying(!isEditorPlaying)}
+              onTogglePlay={handleEditorTogglePlay}
               currentIndex={editorCurrentIndex}
               setCurrentIndex={setEditorCurrentIndex}
               steps={steps}
               isPickingColor={isPickingColor}
               onColorPick={handleColorPicked}
+              prePlaybackFocusedFrameId={prePlaybackFocusedFrameId}
+              onConsumePrePlaybackFocus={() => setPrePlaybackFocusedFrameId(null)}
             />
             
             <RightSidebar 
