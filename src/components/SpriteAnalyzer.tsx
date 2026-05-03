@@ -121,22 +121,37 @@ export function SpriteAnalyzer({
 
   const activeFrameIds = useMemo(() => new Set(playbackFrames.map(frame => frame.id)), [playbackFrames]);
 
+  const frameById = useMemo(() => new Map(frames.map(frame => [frame.id, frame])), [frames]);
+
   const chapterGridSections = useMemo(() => {
-    return chapters
-      .filter(chapter => isAllFramesChecked || checkedChapterIds.has(chapter.id))
-      .map(chapter => ({
-        chapter,
-        frames: chapter.frameIds
-          .map(frameId => frames.find(frame => frame.id === frameId))
-          .filter((frame): frame is Frame => Boolean(frame) && activeFrameIds.has(frame.id)),
-      }))
+    const visibleChapters = isAllFramesChecked
+      ? chapters
+      : chapters.filter(chapter => checkedChapterIds.has(chapter.id));
+
+    const seenFrameIds = new Set<string>();
+
+    return visibleChapters
+      .map(chapter => {
+        const chapterFrames = chapter.frameIds
+          .map(frameId => frameById.get(frameId))
+          .filter((frame): frame is Frame => Boolean(frame) && activeFrameIds.has(frame.id))
+          .filter((frame) => {
+            if (seenFrameIds.has(frame.id)) return false;
+            seenFrameIds.add(frame.id);
+            return true;
+          });
+
+        return { chapter, frames: chapterFrames };
+      })
       .filter(section => section.frames.length > 0);
-  }, [chapters, checkedChapterIds, frames, activeFrameIds, isAllFramesChecked]);
+  }, [chapters, checkedChapterIds, frameById, activeFrameIds, isAllFramesChecked]);
 
   const orphanFrames = useMemo(() => {
     const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
-    return playbackFrames.filter(frame => !chapterFrameIds.has(frame.id));
-  }, [chapters, playbackFrames]);
+    return playbackFrames
+      .filter(frame => !chapterFrameIds.has(frame.id))
+      .filter(frame => activeFrameIds.has(frame.id));
+  }, [chapters, playbackFrames, activeFrameIds]);
 
   const toggleChapter = (chapterId: string) => {
     onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
@@ -518,7 +533,7 @@ export function SpriteAnalyzer({
               }}>
                 <input 
                   type="checkbox"
-                  checked={selectedIds.size > 0 && selectedIds.size === allFramesCount}
+                  checked={isAllFramesChecked}
                   onChange={() => {}} // Handled by div click
                   className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 accent-purple-500 cursor-pointer pointer-events-none"
                 />
@@ -819,13 +834,15 @@ export function SpriteAnalyzer({
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
                                   style={{ 
-                                    backgroundColor: isFocused 
-                                      ? (chapter?.color || '#9333ea') 
-                                      : chapter?.color 
-                                        ? chapter.color 
-                                        : isSelected 
-                                          ? '#7c3aed' 
-                                          : 'rgba(0,0,0,0.6)' 
+                                    backgroundColor: isAllFramesChecked
+                                      ? '#3f3f46'
+                                      : isFocused
+                                        ? (chapter?.color || '#9333ea')
+                                        : chapter?.color
+                                          ? chapter.color
+                                          : isSelected
+                                            ? '#7c3aed'
+                                            : 'rgba(0,0,0,0.6)' 
                                   }}
                                 >
                                   {frame.index + 1}
@@ -908,11 +925,13 @@ export function SpriteAnalyzer({
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
                                   style={{ 
-                                    backgroundColor: isFocused 
-                                      ? '#9333ea' 
-                                      : isSelected 
-                                        ? '#7c3aed' 
-                                        : 'rgba(0,0,0,0.6)' 
+                                    backgroundColor: isAllFramesChecked
+                                      ? '#3f3f46'
+                                      : isFocused
+                                        ? '#9333ea'
+                                        : isSelected
+                                          ? '#7c3aed'
+                                          : 'rgba(0,0,0,0.6)' 
                                   }}
                                 >
                                   {frame.index + 1}
