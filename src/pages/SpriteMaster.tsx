@@ -1422,14 +1422,18 @@ const activeFrames = useMemo(() => {
                   return next;
                 });
 
-                if (isCurrentlyChecked) {
-                  const chapter = chapters.find(c => c.id === chapterId);
-                  const firstFrameId = chapter?.frameIds[0] ?? null;
+                 if (isCurrentlyChecked) {
+                   const chapter = chapters.find(c => c.id === chapterId);
+                   const fallbackFrameId = chapter
+                     ? (focusedFrameId && chapter.frameIds.includes(focusedFrameId)
+                         ? focusedFrameId
+                         : chapter.frameIds[0] ?? null)
+                     : null;
 
-                  if (firstFrameId) {
-                    setSelectionWithSource(new Set([firstFrameId]), 'manual');
-                    setFocusedFrameId(firstFrameId);
-                  } else {
+                   if (fallbackFrameId) {
+                     setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
+                     setFocusedFrameId(fallbackFrameId);
+                   } else {
                     setSelectionWithSource(new Set(), 'default-all');
                     setFocusedFrameId(null);
                   }
