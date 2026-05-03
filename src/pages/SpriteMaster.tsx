@@ -211,22 +211,36 @@ const isAllFramesMode = useMemo(() => {
   return frames.length > 0 && isAllFramesChecked;
 }, [frames.length, isAllFramesChecked]);
 
+const orderedCheckedFrames = useMemo(() => {
+  if (checkedChapterIds.size === 0) return [];
+
+  const frameById = new Map(frames.map(frame => [frame.id, frame]));
+  const seen = new Set<string>();
+
+  return chapters
+    .filter(chapter => checkedChapterIds.has(chapter.id))
+    .flatMap(chapter => chapter.frameIds)
+    .reduce<Frame[]>((ordered, frameId) => {
+      if (seen.has(frameId)) return ordered;
+      const frame = frameById.get(frameId);
+      if (!frame) return ordered;
+      seen.add(frameId);
+      ordered.push(frame);
+      return ordered;
+    }, []);
+}, [frames, chapters, checkedChapterIds]);
+
 const activeFrames = useMemo(() => {
   if (isAllFramesChecked) return frames;
 
-  if (checkedChapterIds.size > 0) {
-    const checkedFrameIds = new Set(
-      chapters
-        .filter(chapter => checkedChapterIds.has(chapter.id))
-        .flatMap(chapter => chapter.frameIds)
-    );
-    return checkedFrameIds.size > 0 ? frames.filter(f => checkedFrameIds.has(f.id)) : frames;
+  if (orderedCheckedFrames.length > 0) {
+    return orderedCheckedFrames;
   }
 
   return selectedIds.size > 0
     ? frames.filter(f => selectedIds.has(f.id))
     : frames;
-}, [frames, selectedIds, isAllFramesChecked, checkedChapterIds, chapters]);
+}, [frames, selectedIds, isAllFramesChecked, orderedCheckedFrames]);
 
   const selectionPreviewColor = useMemo(() => {
     if (selectionSource !== 'manual' || selectedIds.size < 1) return null;
@@ -1401,6 +1415,7 @@ const activeFrames = useMemo(() => {
               selectionPreviewColor={selectionPreviewColor}
               steps={steps}
               activeFrames={activeFrames}
+              isAllFramesChecked={isAllFramesChecked}
             />
           </motion.div>
         ) : activeView === 'test' ? (
