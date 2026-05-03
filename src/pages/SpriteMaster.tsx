@@ -1412,7 +1412,16 @@ const activeFrames = useMemo(() => {
               onShowExport={() => setActiveView('export')}
               onStartOver={handleStartOver}
               onReorderChapters={reorderChapters}
-              selectionPreviewColor={selectionPreviewColor}
+              onDeleteChapter={handleDeleteChapter}
+              onAllFramesToggle={() => {
+                setIsAllFramesChecked(prev => !prev);
+                setAllFramesManuallyOverridden(true);
+              }}
+              onToggleSelect={(id, shift, ctrl) => {
+                toggleSelect(id, shift, ctrl);
+                setSelectionSource('manual');
+              }}
+              onSetSelectionAnchor={(id) => setSelectionAnchor(id)}
               steps={steps}
               activeFrames={activeFrames}
               isAllFramesChecked={isAllFramesChecked}
