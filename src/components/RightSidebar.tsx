@@ -140,8 +140,8 @@ function SortableFrameItem({
             ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
               : isFocused 
               ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
-              : isSelected 
-                ? (isAllFramesMode ? 'border-zinc-600 bg-zinc-700/10 opacity-100' : 'border-purple-600 bg-purple-600/10 opacity-100') 
+              : isSelected && !isAllFramesMode
+                ? 'border-purple-600 bg-purple-600/10 opacity-100'
                 : checkedChapterColor
                   ? 'opacity-90 bg-zinc-900/10'
                   : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
@@ -404,7 +404,7 @@ export function RightSidebar({
                   const isSelected = selectedIds.has(frame.id);
                   const stripColor = chapter?.color
                     ? chapter.color
-                    : (isSelected && selectionPreviewColor)
+                    : (!isAllFramesMode && isSelected && selectionPreviewColor)
                       ? selectionPreviewColor
                       : isAllFramesMode
                         ? '#3f3f46'

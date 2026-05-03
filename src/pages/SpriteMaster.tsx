@@ -577,14 +577,18 @@ const activeFrames = useMemo(() => {
         : null;
 
       if (fallbackFrameId) {
-        setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
+        if (isAllFramesChecked) {
+          setSelectionWithSource(new Set(), 'default-all');
+        } else {
+          setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
+        }
         setFocusedFrameId(fallbackFrameId);
       } else {
         setSelectionWithSource(new Set(), 'default-all');
         setFocusedFrameId(null);
       }
     }
-  }, [chapters, checkedChapterIds, focusedFrameId, setSelectionWithSource]);
+  }, [chapters, checkedChapterIds, focusedFrameId, isAllFramesChecked, setSelectionWithSource]);
 
 
   const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
