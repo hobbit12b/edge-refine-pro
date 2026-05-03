@@ -176,9 +176,9 @@ export function SpriteAnalyzer({
   const getTopStripColor = (frameId: string, isSelected: boolean) => {
     const chapter = chapterByFrameId.get(frameId);
     if (chapter?.color) {
-      if (checkedChapterIds.has(chapter.id) || isAllFramesChecked) return chapter.color;
+      if (checkedChapterIds.has(chapter.id)) return chapter.color;
     }
-    if (isSelected) return '#7c3aed';
+    if (isSelected && !isAllFramesChecked) return '#7c3aed';
     return '#3f3f46';
   };
 
@@ -844,7 +844,7 @@ export function SpriteAnalyzer({
                                     ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                     : isFocused 
                                       ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30' 
-                                      : isSelected 
+                                      : isSelected && !isAllFramesChecked
                                         ? 'border-purple-600 bg-purple-600/10 opacity-100' 
                                         : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
                                 `}
