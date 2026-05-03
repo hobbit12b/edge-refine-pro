@@ -63,6 +63,7 @@ interface SpriteAnalyzerProps {
   onReorderChapters: (startIndex: number, endIndex: number) => void;
   steps: any[];
   activeFrames: Frame[];
+  isAllFramesChecked: boolean;
 }
 
 
@@ -95,6 +96,7 @@ export function SpriteAnalyzer({
   onReorderChapters,
   steps,
   activeFrames,
+  isAllFramesChecked,
 }: SpriteAnalyzerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -115,6 +117,26 @@ export function SpriteAnalyzer({
 
   const focusedFrame = playbackFrames.find(f => f.id === focusedFrameId) || playbackFrames[0] || null;
   const focusedIndex = focusedFrame ? playbackFrames.findIndex(f => f.id === focusedFrame.id) : -1;
+
+
+  const activeFrameIds = useMemo(() => new Set(playbackFrames.map(frame => frame.id)), [playbackFrames]);
+
+  const chapterGridSections = useMemo(() => {
+    return chapters
+      .filter(chapter => isAllFramesChecked || checkedChapterIds.has(chapter.id))
+      .map(chapter => ({
+        chapter,
+        frames: chapter.frameIds
+          .map(frameId => frames.find(frame => frame.id === frameId))
+          .filter((frame): frame is Frame => Boolean(frame) && activeFrameIds.has(frame.id)),
+      }))
+      .filter(section => section.frames.length > 0);
+  }, [chapters, checkedChapterIds, frames, activeFrameIds, isAllFramesChecked]);
+
+  const orphanFrames = useMemo(() => {
+    const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
+    return playbackFrames.filter(frame => !chapterFrameIds.has(frame.id));
+  }, [chapters, playbackFrames]);
 
   const toggleChapter = (chapterId: string) => {
     onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
@@ -742,10 +764,7 @@ export function SpriteAnalyzer({
             
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <div className="space-y-8">
-                {chapters.map((chapter) => {
-                  const chapterFrames = frames.filter(f => chapter.frameIds.includes(f.id));
-                  if (chapterFrames.length === 0) return null;
-                  
+                {chapterGridSections.map(({ chapter, frames: chapterFrames }) => {
                   return (
                     <div key={chapter.id} className="space-y-2">
                       <div className="flex items-center gap-2 px-1">
@@ -837,9 +856,7 @@ export function SpriteAnalyzer({
 
                 {/* Frames without chapter */}
                 {(() => {
-                  const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
-                  const orphanFrames = frames.filter(f => !chapterFrameIds.has(f.id));
-                  if (orphanFrames.length === 0) return null;
+                  if (!isAllFramesChecked || orphanFrames.length === 0) return null;
 
                   return (
                     <div className="space-y-2">
