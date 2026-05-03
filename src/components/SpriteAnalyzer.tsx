@@ -61,6 +61,10 @@ interface SpriteAnalyzerProps {
   onShowExport: () => void;
   onStartOver: () => void;
   onReorderChapters: (startIndex: number, endIndex: number) => void;
+  onDeleteChapter: (chapterId: string) => void;
+  onAllFramesToggle: () => void;
+  onToggleSelect: (id: string, shift: boolean, ctrl: boolean) => void;
+  onSetSelectionAnchor: (id: string) => void;
   steps: any[];
   activeFrames: Frame[];
   isAllFramesChecked: boolean;
@@ -94,6 +98,10 @@ export function SpriteAnalyzer({
   onShowExport,
   onStartOver,
   onReorderChapters,
+  onDeleteChapter,
+  onAllFramesToggle,
+  onToggleSelect,
+  onSetSelectionAnchor,
   steps,
   activeFrames,
   isAllFramesChecked,
@@ -173,7 +181,7 @@ export function SpriteAnalyzer({
   };
 
   const deleteChapter = (chapterId: string) => {
-    onChaptersChange(chapters.filter(c => c.id !== chapterId));
+    onDeleteChapter(chapterId);
   };
 
   const selectChapterFrames = (chapter: AnimationChapter, isMultiSelect: boolean) => {
@@ -525,21 +533,18 @@ export function SpriteAnalyzer({
             <div className="group flex items-center gap-1 p-1 bg-zinc-900/50 hover:bg-zinc-800/50 rounded border border-zinc-800 transition-all">
               <div className="flex items-center gap-2 px-1 py-1 cursor-pointer" onClick={(e) => {
                 e.stopPropagation();
-                if (selectedIds.size === allFramesCount) {
-                  onSelectIds(new Set());
-                } else {
-                  onSelectIds(new Set(frames.map(f => f.id)));
-                }
+                onAllFramesToggle();
               }}>
                 <input 
                   type="checkbox"
                   checked={isAllFramesChecked}
                   onChange={() => {}} // Handled by div click
-                  className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 accent-purple-500 cursor-pointer pointer-events-none"
+                  style={{ accentColor: '#3f3f46' }}
+                  className="w-3 h-3 rounded border-zinc-700 bg-zinc-950 cursor-pointer pointer-events-none"
                 />
               </div>
               <button 
-                onClick={() => onSelectIds(new Set(frames.map(f => f.id)))}
+                onClick={onAllFramesToggle}
                 className="flex-1 text-left text-[9px] font-bold text-zinc-300 hover:text-white truncate py-1"
               >
                 Alle Frames
@@ -827,6 +832,8 @@ export function SpriteAnalyzer({
                                   e.stopPropagation();
                                   setIsPlaying(false);
                                   onFocusFrame(frame.id);
+                                  onSetSelectionAnchor(frame.id);
+                                  onToggleSelect(frame.id, e.shiftKey, e.metaKey || e.ctrlKey);
                                 }}
                               >
                                 <div 
@@ -918,6 +925,8 @@ export function SpriteAnalyzer({
                                   e.stopPropagation();
                                   setIsPlaying(false);
                                   onFocusFrame(frame.id);
+                                  onSetSelectionAnchor(frame.id);
+                                  onToggleSelect(frame.id, e.shiftKey, e.metaKey || e.ctrlKey);
                                 }}
                               >
                                 <div 
