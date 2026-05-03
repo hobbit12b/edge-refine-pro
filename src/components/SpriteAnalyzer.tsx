@@ -60,7 +60,9 @@ interface SpriteAnalyzerProps {
   onStartOver: () => void;
   onReorderChapters: (startIndex: number, endIndex: number) => void;
   steps: any[];
+  activeFrames: Frame[];
 }
+
 
 export function SpriteAnalyzer({
   frames,
@@ -88,6 +90,7 @@ export function SpriteAnalyzer({
   onStartOver,
   onReorderChapters,
   steps,
+  activeFrames,
 }: SpriteAnalyzerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -103,10 +106,8 @@ export function SpriteAnalyzer({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const playbackFrames = useMemo(() => {
-    return selectedIds.size > 0 
-      ? frames.filter(f => selectedIds.has(f.id))
-      : frames;
-  }, [frames, selectedIds]);
+    return activeFrames.length > 0 ? activeFrames : frames;
+  }, [activeFrames, frames]);
 
   const focusedFrame = frames.find(f => f.id === focusedFrameId) || frames[0] || null;
   const focusedIndex = focusedFrame ? frames.findIndex(f => f.id === focusedFrame.id) : -1;
