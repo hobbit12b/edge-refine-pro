@@ -1424,11 +1424,14 @@ const activeFrames = useMemo(() => {
 
                 if (isCurrentlyChecked) {
                   const chapter = chapters.find(c => c.id === chapterId);
-                  const firstFrameId = chapter?.frameIds[0] ?? null;
+                  const fallbackFrameId =
+                    focusedFrameId && chapter?.frameIds.includes(focusedFrameId)
+                      ? focusedFrameId
+                      : (chapter?.frameIds[0] ?? null);
 
-                  if (firstFrameId) {
-                    setSelectionWithSource(new Set([firstFrameId]), 'manual');
-                    setFocusedFrameId(firstFrameId);
+                  if (fallbackFrameId) {
+                    setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
+                    setFocusedFrameId(fallbackFrameId);
                   } else {
                     setSelectionWithSource(new Set(), 'default-all');
                     setFocusedFrameId(null);
