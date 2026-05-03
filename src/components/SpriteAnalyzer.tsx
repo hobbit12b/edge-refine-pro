@@ -129,30 +129,36 @@ export function SpriteAnalyzer({
 
   const activeFrameIds = useMemo(() => new Set(playbackFrames.map(frame => frame.id)), [playbackFrames]);
 
-  const frameById = useMemo(() => new Map(frames.map(frame => [frame.id, frame])), [frames]);
+  const chapterByFrameId = useMemo(() => {
+    const map = new Map<string, AnimationChapter>();
+    chapters.forEach((chapter) => {
+      chapter.frameIds.forEach((frameId) => {
+        if (!map.has(frameId)) map.set(frameId, chapter);
+      });
+    });
+    return map;
+  }, [chapters]);
 
   const chapterGridSections = useMemo(() => {
     const visibleChapters = isAllFramesChecked
       ? chapters
       : chapters.filter(chapter => checkedChapterIds.has(chapter.id));
 
-    const seenFrameIds = new Set<string>();
+    const visibleChapterIds = new Set(visibleChapters.map(chapter => chapter.id));
+    const chapterSections = new Map<string, { chapter: AnimationChapter; frames: Frame[] }>();
+    visibleChapters.forEach((chapter) => chapterSections.set(chapter.id, { chapter, frames: [] }));
+
+    playbackFrames.forEach((frame) => {
+      if (!activeFrameIds.has(frame.id)) return;
+      const chapter = chapterByFrameId.get(frame.id);
+      if (!chapter || !visibleChapterIds.has(chapter.id)) return;
+      chapterSections.get(chapter.id)?.frames.push(frame);
+    });
 
     return visibleChapters
-      .map(chapter => {
-        const chapterFrames = chapter.frameIds
-          .map(frameId => frameById.get(frameId))
-          .filter((frame): frame is Frame => Boolean(frame) && activeFrameIds.has(frame.id))
-          .filter((frame) => {
-            if (seenFrameIds.has(frame.id)) return false;
-            seenFrameIds.add(frame.id);
-            return true;
-          });
-
-        return { chapter, frames: chapterFrames };
-      })
-      .filter(section => section.frames.length > 0);
-  }, [chapters, checkedChapterIds, frameById, activeFrameIds, isAllFramesChecked]);
+      .map(chapter => chapterSections.get(chapter.id))
+      .filter((section): section is { chapter: AnimationChapter; frames: Frame[] } => Boolean(section && section.frames.length > 0));
+  }, [chapters, checkedChapterIds, activeFrameIds, isAllFramesChecked, playbackFrames, chapterByFrameId]);
 
   const orphanFrames = useMemo(() => {
     const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
@@ -160,6 +166,15 @@ export function SpriteAnalyzer({
       .filter(frame => !chapterFrameIds.has(frame.id))
       .filter(frame => activeFrameIds.has(frame.id));
   }, [chapters, playbackFrames, activeFrameIds]);
+
+  const getTopStripColor = (frameId: string, isSelected: boolean) => {
+    const chapter = chapterByFrameId.get(frameId);
+    if (chapter?.color) {
+      if (checkedChapterIds.has(chapter.id) || isAllFramesChecked) return chapter.color;
+    }
+    if (isSelected) return '#7c3aed';
+    return '#3f3f46';
+  };
 
   const toggleChapter = (chapterId: string) => {
     onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
@@ -560,7 +575,7 @@ export function SpriteAnalyzer({
 
               return (
                 <div key={chapter.id} className="space-y-1">
-                  <div className="group flex items-center gap-1 p-1 bg-zinc-900/50 hover:bg-zinc-800/50 rounded border border-zinc-800 transition-all">
+                  <div className="group flex items-center gap-1 p-1 bg-zinc-900/50 rounded border transition-all" style={{ borderColor: chapter.color || '#a855f7' }}>
                     <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={(e) => { e.stopPropagation(); idx > 0 && onReorderChapters(idx, idx - 1); }}
@@ -581,7 +596,7 @@ export function SpriteAnalyzer({
                       e.stopPropagation();
                       onToggleChapterChecked(chapter.id);
                     }}>
-                      <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isChecked ? 'bg-purple-600 border-purple-500' : 'border-zinc-700 bg-zinc-950'}`}>
+                      <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isChecked ? 'border-transparent' : 'border-zinc-200 bg-white'}`} style={isChecked ? { backgroundColor: chapter.color || '#a855f7' } : undefined}>
                         {isChecked && <Check size={10} strokeWidth={4} />}
                       </div>
                     </div>
@@ -802,6 +817,7 @@ export function SpriteAnalyzer({
                           const isFocused = focusedFrameId === frame.id;
                           const isSelected = selectedIds.has(frame.id);
                           const isPlayingHighlight = isPlaying && playbackFrames[currentIndex % playbackFrames.length]?.id === frame.id;
+                          const stripColor = getTopStripColor(frame.id, isSelected);
 
                           return (
                             <div
@@ -819,7 +835,7 @@ export function SpriteAnalyzer({
                                   ${isPlayingHighlight
                                     ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                     : isFocused 
-                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
+                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30' 
                                       : isSelected 
                                         ? 'border-purple-600 bg-purple-600/10 opacity-100' 
                                         : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
@@ -841,15 +857,7 @@ export function SpriteAnalyzer({
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
                                   style={{ 
-                                    backgroundColor: isAllFramesChecked
-                                      ? '#3f3f46'
-                                      : isFocused
-                                        ? (chapter?.color || '#9333ea')
-                                        : chapter?.color
-                                          ? chapter.color
-                                          : isSelected
-                                            ? '#7c3aed'
-                                            : 'rgba(0,0,0,0.6)' 
+                                    backgroundColor: stripColor
                                   }}
                                 >
                                   {frame.index + 1}
@@ -916,7 +924,7 @@ export function SpriteAnalyzer({
                                   ${isPlayingHighlight
                                     ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                     : isFocused 
-                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
+                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30' 
                                       : isSelected 
                                         ? 'border-purple-600 bg-purple-600/10 opacity-100' 
                                         : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
@@ -934,13 +942,7 @@ export function SpriteAnalyzer({
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
                                   style={{ 
-                                    backgroundColor: isAllFramesChecked
-                                      ? '#3f3f46'
-                                      : isFocused
-                                        ? '#9333ea'
-                                        : isSelected
-                                          ? '#7c3aed'
-                                          : 'rgba(0,0,0,0.6)' 
+                                    backgroundColor: getTopStripColor(frame.id, isSelected)
                                   }}
                                 >
                                   {frame.index + 1}
