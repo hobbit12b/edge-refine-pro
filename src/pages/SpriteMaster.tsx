@@ -1367,6 +1367,7 @@ const activeFrames = useMemo(() => {
               onReorderChapters={reorderChapters}
               selectionPreviewColor={selectionPreviewColor}
               steps={steps}
+              activeFrames={activeFrames}
             />
           </motion.div>
         ) : activeView === 'test' ? (
@@ -1392,6 +1393,7 @@ const activeFrames = useMemo(() => {
               onShowExport={() => setActiveView('export')}
               onStartOver={handleStartOver}
               steps={steps}
+              activeFrames={activeFrames}
             />
           </motion.div>
         ) : activeView === 'editor' ? (
