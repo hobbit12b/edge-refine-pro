@@ -541,6 +541,37 @@ const activeFrames = useMemo(() => {
     });
   }, []);
 
+  const handleToggleChapterChecked = useCallback((chapterId: string) => {
+    const isCurrentlyChecked = checkedChapterIds.has(chapterId);
+
+    setCheckedChapterIds(prev => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+
+    if (isCurrentlyChecked) {
+      const chapter = chapters.find(c => c.id === chapterId);
+      const fallbackFrameId = chapter
+        ? (focusedFrameId && chapter.frameIds.includes(focusedFrameId)
+            ? focusedFrameId
+            : chapter.frameIds[0] ?? null)
+        : null;
+
+      if (fallbackFrameId) {
+        setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
+        setFocusedFrameId(fallbackFrameId);
+      } else {
+        setSelectionWithSource(new Set(), 'default-all');
+        setFocusedFrameId(null);
+      }
+    }
+  }, [chapters, checkedChapterIds, focusedFrameId, setSelectionWithSource]);
+
 
   const cleanupChaptersAndBindingsForFrames = useCallback((nextFrames: Frame[]) => {
     const validFrameIds = new Set(nextFrames.map((frame) => frame.id));
@@ -1341,6 +1372,8 @@ const activeFrames = useMemo(() => {
               settings={settings}
               focusedFrameId={focusedFrameId}
               chapters={chapters}
+              checkedChapterIds={checkedChapterIds}
+              onToggleChapterChecked={handleToggleChapterChecked}
               onChaptersChange={setChapters}
               selectedIds={hasExplicitSelection ? selectedIds : new Set<string>()}
               onSelectIds={(ids) => {
@@ -1411,36 +1444,7 @@ const activeFrames = useMemo(() => {
               onChaptersChange={setChapters}
               selectedIds={selectedIds}
               checkedChapterIds={checkedChapterIds}
-              onToggleChapterChecked={(chapterId) => {
-                const isCurrentlyChecked = checkedChapterIds.has(chapterId);
-
-                setCheckedChapterIds(prev => {
-                  const next = new Set(prev);
-                  if (next.has(chapterId)) {
-                    next.delete(chapterId);
-                  } else {
-                    next.add(chapterId);
-                  }
-                  return next;
-                });
-
-                 if (isCurrentlyChecked) {
-                   const chapter = chapters.find(c => c.id === chapterId);
-                   const fallbackFrameId = chapter
-                     ? (focusedFrameId && chapter.frameIds.includes(focusedFrameId)
-                         ? focusedFrameId
-                         : chapter.frameIds[0] ?? null)
-                     : null;
-
-                   if (fallbackFrameId) {
-                     setSelectionWithSource(new Set([fallbackFrameId]), 'manual');
-                     setFocusedFrameId(fallbackFrameId);
-                   } else {
-                    setSelectionWithSource(new Set(), 'default-all');
-                    setFocusedFrameId(null);
-                  }
-                }
-              }}
+              onToggleChapterChecked={handleToggleChapterChecked}
               onDeleteChapter={handleDeleteChapter}
               onChapterCreated={(chapterId) => {
                 setCheckedChapterIds(prev => new Set([...prev, chapterId]));

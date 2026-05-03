@@ -38,6 +38,8 @@ interface SpriteAnalyzerProps {
   settings: SpriteSheetSettings;
   focusedFrameId: string | null;
   chapters: AnimationChapter[];
+  checkedChapterIds: Set<string>;
+  onToggleChapterChecked: (chapterId: string) => void;
   onChaptersChange: (chapters: AnimationChapter[]) => void;
   selectedIds: Set<string>;
   onSelectIds: (ids: Set<string>) => void;
@@ -69,6 +71,8 @@ export function SpriteAnalyzer({
   settings,
   focusedFrameId,
   chapters,
+  checkedChapterIds,
+  onToggleChapterChecked,
   onChaptersChange,
   selectedIds,
   onBack,
@@ -510,7 +514,7 @@ export function SpriteAnalyzer({
 
             {chapters.map((chapter, idx) => {
               const allChapterIds = new Set(chapter.frameIds);
-              const isSelected = allChapterIds.size > 0 && Array.from(allChapterIds).every(id => selectedIds.has(id));
+              const isChecked = checkedChapterIds.has(chapter.id);
 
               return (
                 <div key={chapter.id} className="space-y-1">
@@ -533,10 +537,10 @@ export function SpriteAnalyzer({
                     </div>
                     <div className="flex items-center px-1 py-1 cursor-pointer" onClick={(e) => {
                       e.stopPropagation();
-                      selectChapterFrames(chapter, true);
+                      onToggleChapterChecked(chapter.id);
                     }}>
-                      <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-600 border-purple-500' : 'border-zinc-700 bg-zinc-950'}`}>
-                        {isSelected && <Check size={10} strokeWidth={4} />}
+                      <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isChecked ? 'bg-purple-600 border-purple-500' : 'border-zinc-700 bg-zinc-950'}`}>
+                        {isChecked && <Check size={10} strokeWidth={4} />}
                       </div>
                     </div>
                     {editingId === chapter.id ? (
