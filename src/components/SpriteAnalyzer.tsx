@@ -127,8 +127,6 @@ export function SpriteAnalyzer({
   const focusedIndex = focusedFrame ? playbackFrames.findIndex(f => f.id === focusedFrame.id) : -1;
 
 
-  const activeFrameIds = useMemo(() => new Set(playbackFrames.map(frame => frame.id)), [playbackFrames]);
-
   const chapterByFrameId = useMemo(() => {
     const map = new Map<string, AnimationChapter>();
     chapters.forEach((chapter) => {
@@ -140,32 +138,29 @@ export function SpriteAnalyzer({
   }, [chapters]);
 
   const chapterGridSections = useMemo(() => {
-    const visibleChapters = isAllFramesChecked
-      ? chapters
-      : chapters.filter(chapter => checkedChapterIds.has(chapter.id));
+    if (isAllFramesChecked) {
+      return [{ chapter: null, frames: playbackFrames }];
+    }
 
-    const visibleChapterIds = new Set(visibleChapters.map(chapter => chapter.id));
-    const chapterSections = new Map<string, { chapter: AnimationChapter; frames: Frame[] }>();
-    visibleChapters.forEach((chapter) => chapterSections.set(chapter.id, { chapter, frames: [] }));
+    const frameById = new Map(playbackFrames.map((frame) => [frame.id, frame]));
+    const seenFrameIds = new Set<string>();
 
-    playbackFrames.forEach((frame) => {
-      if (!activeFrameIds.has(frame.id)) return;
-      const chapter = chapterByFrameId.get(frame.id);
-      if (!chapter || !visibleChapterIds.has(chapter.id)) return;
-      chapterSections.get(chapter.id)?.frames.push(frame);
-    });
+    return chapters
+      .filter((chapter) => checkedChapterIds.has(chapter.id))
+      .map((chapter) => {
+        const chapterFrames = chapter.frameIds
+          .map((frameId) => frameById.get(frameId))
+          .filter((frame): frame is Frame => Boolean(frame))
+          .filter((frame) => {
+            if (seenFrameIds.has(frame.id)) return false;
+            seenFrameIds.add(frame.id);
+            return true;
+          });
 
-    return visibleChapters
-      .map(chapter => chapterSections.get(chapter.id))
-      .filter((section): section is { chapter: AnimationChapter; frames: Frame[] } => Boolean(section && section.frames.length > 0));
-  }, [chapters, checkedChapterIds, activeFrameIds, isAllFramesChecked, playbackFrames, chapterByFrameId]);
-
-  const orphanFrames = useMemo(() => {
-    const chapterFrameIds = new Set(chapters.flatMap(c => c.frameIds));
-    return playbackFrames
-      .filter(frame => !chapterFrameIds.has(frame.id))
-      .filter(frame => activeFrameIds.has(frame.id));
-  }, [chapters, playbackFrames, activeFrameIds]);
+        return { chapter, frames: chapterFrames };
+      })
+      .filter((section) => section.frames.length > 0);
+  }, [isAllFramesChecked, playbackFrames, chapters, checkedChapterIds]);
 
   const getTopStripColor = (frameId: string, isSelected: boolean) => {
     const chapter = chapterByFrameId.get(frameId);
@@ -799,13 +794,15 @@ export function SpriteAnalyzer({
             
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <div className="space-y-8">
-                {chapterGridSections.map(({ chapter, frames: chapterFrames }) => {
+                {chapterGridSections.map(({ chapter, frames: chapterFrames }, sectionIndex) => {
                   return (
-                    <div key={chapter.id} className="space-y-2">
-                      <div className="flex items-center gap-2 px-1">
-                        <div className="w-1 h-3 rounded-full" style={{ backgroundColor: chapter.color || '#a855f7' }} />
-                        <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{chapter.name}</span>
-                      </div>
+                    <div key={chapter?.id ?? `all-frames-${sectionIndex}`} className="space-y-2">
+                      {chapter && (
+                        <div className="flex items-center gap-2 px-1">
+                          <div className="w-1 h-3 rounded-full" style={{ backgroundColor: chapter.color || '#a855f7' }} />
+                          <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{chapter.name}</span>
+                        </div>
+                      )}
                       <div 
                         className="grid" 
                         style={{ 
@@ -841,8 +838,8 @@ export function SpriteAnalyzer({
                                         : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
                                 `}
                                 style={{
-                                  borderColor: isFocused ? '#ffffff' : (isSelected && chapter?.color ? chapter.color : undefined),
-                                  backgroundColor: (isSelected || isFocused) && chapter?.color ? `${chapter.color}1A` : undefined
+                                  borderColor: isFocused ? '#ffffff' : (isSelected && chapterByFrameId.get(frame.id)?.color ? chapterByFrameId.get(frame.id)?.color : undefined),
+                                  backgroundColor: (isSelected || isFocused) && chapterByFrameId.get(frame.id)?.color ? `${chapterByFrameId.get(frame.id)?.color}1A` : undefined
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -886,85 +883,6 @@ export function SpriteAnalyzer({
                   );
                 })}
 
-                {/* Frames without chapter */}
-                {(() => {
-                  if (!isAllFramesChecked || orphanFrames.length === 0) return null;
-
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 px-1">
-                        <div className="w-1 h-3 rounded-full bg-zinc-700" />
-                        <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Ongecategoriseerd</span>
-                      </div>
-                      <div 
-                        className="grid" 
-                        style={{ 
-                          gridTemplateColumns: `repeat(auto-fill, minmax(${settings.frameGridSize + 8}px, 1fr))`,
-                          gap: '0px'
-                        }}
-                      >
-                        {orphanFrames.map((frame) => {
-                          const isFocused = focusedFrameId === frame.id;
-                          const isSelected = selectedIds.has(frame.id);
-                          const isPlayingHighlight = isPlaying && playbackFrames[currentIndex % playbackFrames.length]?.id === frame.id;
-
-                          return (
-                            <div
-                              key={frame.id}
-                              style={{ 
-                                width: settings.frameGridSize, 
-                                height: settings.frameGridSize,
-                                padding: '4px',
-                                position: 'relative'
-                              }}
-                            >
-                              <div
-                                className={`
-                                  relative w-full h-full rounded-xl border-2 transition-all group cursor-default overflow-hidden shadow-lg p-1
-                                  ${isPlayingHighlight
-                                    ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
-                                    : isFocused 
-                                      ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30' 
-                                      : isSelected 
-                                        ? 'border-purple-600 bg-purple-600/10 opacity-100' 
-                                        : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
-                                `}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsPlaying(false);
-                                  onFocusFrame(frame.id);
-                                  onSetSelectionAnchor(frame.id);
-                                  onToggleSelect(frame.id, e.shiftKey, e.metaKey || e.ctrlKey);
-                                }}
-                              >
-                                <div 
-                                  className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
-                                    isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
-                                  }`}
-                                  style={{ 
-                                    backgroundColor: getTopStripColor(frame.id, isSelected)
-                                  }}
-                                >
-                                  {frame.index + 1}
-                                </div>
-                                <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">
-                                  {frame?.url && (
-                                    <img
-                                      src={frame.url}
-                                      alt={`Frame ${frame.index}`}
-                                      draggable="false"
-                                      className="w-full h-full object-contain checkerboard pointer-events-none select-none"
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
               </div>
             </div>
           </div>
