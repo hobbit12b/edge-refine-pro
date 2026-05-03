@@ -109,8 +109,8 @@ export function SpriteAnalyzer({
     return activeFrames.length > 0 ? activeFrames : frames;
   }, [activeFrames, frames]);
 
-  const focusedFrame = frames.find(f => f.id === focusedFrameId) || frames[0] || null;
-  const focusedIndex = focusedFrame ? frames.findIndex(f => f.id === focusedFrame.id) : -1;
+  const focusedFrame = playbackFrames.find(f => f.id === focusedFrameId) || playbackFrames[0] || null;
+  const focusedIndex = focusedFrame ? playbackFrames.findIndex(f => f.id === focusedFrame.id) : -1;
 
   const toggleChapter = (chapterId: string) => {
     onChaptersChange(chapters.map(c => c.id === chapterId ? { ...c, isExpanded: !c.isExpanded } : c));
@@ -174,20 +174,20 @@ export function SpriteAnalyzer({
 
   const handleTogglePlay = () => {
     if (!isPlaying) {
-      // Start from the focused frame if valid within selection
-      if (focusedFrameId && selectedIds.size > 0) {
-        const idxInPlayback = playbackFrames.findIndex(f => f.id === focusedFrameId);
-        if (idxInPlayback !== -1) {
-          setCurrentIndex(idxInPlayback);
-        } else {
-          setCurrentIndex(0);
-        }
-      } else if (focusedIndex !== -1) {
-        setCurrentIndex(focusedIndex % frames.length);
-      }
+      // Start from the focused frame within playback scope, or first frame
+      const idxInPlayback = focusedFrameId ? playbackFrames.findIndex(f => f.id === focusedFrameId) : -1;
+      setCurrentIndex(idxInPlayback !== -1 ? idxInPlayback : 0);
     }
     setIsPlaying(!isPlaying);
   };
+
+  useEffect(() => {
+    if (playbackFrames.length === 0 || !focusedFrameId) return;
+    const isFocusedInPlayback = playbackFrames.some(frame => frame.id === focusedFrameId);
+    if (!isFocusedInPlayback) {
+      onFocusFrame(playbackFrames[0].id);
+    }
+  }, [playbackFrames, focusedFrameId, onFocusFrame]);
 
   useEffect(() => {
     if (isPlaying && playbackFrames.length > 0) {
@@ -222,10 +222,10 @@ export function SpriteAnalyzer({
   };
 
   const onionSkinFrame = useMemo(() => {
-    if (focusedIndex === -1) return null;
-    const skinIndex = (focusedIndex + onionSkinDir + frames.length) % frames.length;
-    return frames[skinIndex];
-  }, [focusedIndex, onionSkinDir, frames]);
+    if (focusedIndex === -1 || playbackFrames.length === 0) return null;
+    const skinIndex = (focusedIndex + onionSkinDir + playbackFrames.length) % playbackFrames.length;
+    return playbackFrames[skinIndex];
+  }, [focusedIndex, onionSkinDir, playbackFrames]);
 
   const toggleGridMode = () => {
     const modes: ('none' | 'grid' | 'guide')[] = ['none', 'grid', 'guide'];
@@ -324,14 +324,18 @@ export function SpriteAnalyzer({
       };
 
       switch (e.key) {
-        case 'ArrowLeft':
+        case 'ArrowLeft': {
           e.preventDefault();
-          move(-delta, 0);
+          setIsPlaying(false);
+          navigateFrame(-1);
           break;
-        case 'ArrowRight':
+        }
+        case 'ArrowRight': {
           e.preventDefault();
-          move(delta, 0);
+          setIsPlaying(false);
+          navigateFrame(1);
           break;
+        }
         case 'ArrowUp':
           e.preventDefault();
           move(0, -delta);
@@ -349,7 +353,7 @@ export function SpriteAnalyzer({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, focusedFrameId, isPlaying, handleTogglePlay, onUpdateFramesOffset]);
+  }, [selectedIds, focusedFrameId, isPlaying, handleTogglePlay, onUpdateFramesOffset, navigateFrame]);
 
   const currentPreviewFrame = isPlaying ? playbackFrames[currentIndex % playbackFrames.length] : focusedFrame;
 
@@ -719,7 +723,7 @@ export function SpriteAnalyzer({
               onZoomChange={(val) => onSettingsChange({ ...settings, analyzerZoom: val })}
               onFitToScreen={fitToScreen}
               currentIndex={isPlaying ? (currentIndex % playbackFrames.length) : (focusedIndex !== -1 ? focusedIndex : 0)}
-              totalFrames={isPlaying ? playbackFrames.length : frames.length}
+              totalFrames={playbackFrames.length}
               className="w-full max-w-5xl !bg-transparent !border-none !shadow-none"
             />
           </div>
