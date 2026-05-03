@@ -162,6 +162,17 @@ export function SpriteAnalyzer({
       .filter((section) => section.frames.length > 0);
   }, [isAllFramesChecked, playbackFrames, chapters, checkedChapterIds]);
 
+  const checkedChapterColorByFrameId = useMemo(() => {
+    const map = new Map<string, string>();
+    chapters.forEach((chapter) => {
+      if (!checkedChapterIds.has(chapter.id) || !chapter.color) return;
+      chapter.frameIds.forEach((frameId) => {
+        if (!map.has(frameId)) map.set(frameId, chapter.color!);
+      });
+    });
+    return map;
+  }, [chapters, checkedChapterIds]);
+
   const getTopStripColor = (frameId: string, isSelected: boolean) => {
     const chapter = chapterByFrameId.get(frameId);
     if (chapter?.color) {
@@ -838,7 +849,7 @@ export function SpriteAnalyzer({
                                         : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
                                 `}
                                 style={{
-                                  borderColor: isFocused ? '#ffffff' : (isSelected && chapterByFrameId.get(frame.id)?.color ? chapterByFrameId.get(frame.id)?.color : undefined),
+                                  borderColor: isFocused ? '#ffffff' : checkedChapterColorByFrameId.get(frame.id),
                                   backgroundColor: (isSelected || isFocused) && chapterByFrameId.get(frame.id)?.color ? `${chapterByFrameId.get(frame.id)?.color}1A` : undefined
                                 }}
                                 onClick={(e) => {
