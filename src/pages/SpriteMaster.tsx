@@ -1410,12 +1410,30 @@ const activeFrames = useMemo(() => {
               selectedIds={selectedIds}
               checkedChapterIds={checkedChapterIds}
               onToggleChapterChecked={(chapterId) => {
+                const isCurrentlyChecked = checkedChapterIds.has(chapterId);
+
                 setCheckedChapterIds(prev => {
                   const next = new Set(prev);
-                  if (next.has(chapterId)) next.delete(chapterId);
-                  else next.add(chapterId);
+                  if (next.has(chapterId)) {
+                    next.delete(chapterId);
+                  } else {
+                    next.add(chapterId);
+                  }
                   return next;
                 });
+
+                if (isCurrentlyChecked) {
+                  const chapter = chapters.find(c => c.id === chapterId);
+                  const firstFrameId = chapter?.frameIds[0] ?? null;
+
+                  if (firstFrameId) {
+                    setSelectionWithSource(new Set([firstFrameId]), 'manual');
+                    setFocusedFrameId(firstFrameId);
+                  } else {
+                    setSelectionWithSource(new Set(), 'default-all');
+                    setFocusedFrameId(null);
+                  }
+                }
               }}
               onDeleteChapter={handleDeleteChapter}
               onChapterCreated={(chapterId) => {

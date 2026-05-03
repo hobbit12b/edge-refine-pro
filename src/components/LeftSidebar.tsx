@@ -118,6 +118,8 @@ export function LeftSidebar({
     };
     onChaptersChange([...chapters, newChapter]);
     onChapterCreated(newChapter.id);
+    setEditingId(newChapter.id);
+    setEditValue(newChapter.name);
   };
 
   const toggleChapter = (chapterId: string) => {
