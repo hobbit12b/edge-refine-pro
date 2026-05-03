@@ -182,6 +182,7 @@ const checkedChapters = useMemo(
 );
 
 const hasRealCheckedChapterStructure = useMemo(() => {
+  // Important: auto-check behavior must be based only on checked chapters.
   return (
     checkedChapters.length > 1 ||
     checkedChapters.some(chapter => chapter.frameIds.length > 1)
@@ -189,6 +190,7 @@ const hasRealCheckedChapterStructure = useMemo(() => {
 }, [checkedChapters]);
 
 const isDefaultAllCheckedChapterState = useMemo(() => {
+  // Marker state: no checked chapters, or one checked chapter with one frame.
   return (
     checkedChapters.length === 0 ||
     (checkedChapters.length === 1 && checkedChapters[0].frameIds.length === 1)
@@ -202,6 +204,7 @@ useEffect(() => {
 }, [allFramesManuallyOverridden, isDefaultAllCheckedChapterState]);
 
 useEffect(() => {
+  // Ignore right-sidebar thumbnail selection here; keep this chapter-driven only.
   if (!allFramesManuallyOverridden) {
     setIsAllFramesChecked(!hasRealCheckedChapterStructure);
   }
