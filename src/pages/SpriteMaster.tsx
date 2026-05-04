@@ -171,11 +171,6 @@ export default function SpriteMaster() {
     setSelectedIds,
   });
 
-const hasExplicitSelection = useMemo(() => {
-  return selectionSource !== 'default-all' && selectedIds.size > 0;
-}, [selectionSource, selectedIds.size]);
-
-
 const checkedChapters = useMemo(
   () => chapters.filter(chapter => checkedChapterIds.has(chapter.id)),
   [chapters, checkedChapterIds]
@@ -1233,7 +1228,6 @@ const activeFrames = useMemo(() => {
     }
   };
 
-  const analyzerFrames = useMemo(() => frames.filter(f => selectedIds.has(f.id)), [frames, selectedIds]);
 
   const stats = useMemo(() => {
     if (frames.length === 0) return null;
@@ -1389,9 +1383,11 @@ const activeFrames = useMemo(() => {
               checkedChapterIds={checkedChapterIds}
               onToggleChapterChecked={handleToggleChapterChecked}
               onChaptersChange={setChapters}
-              selectedIds={hasExplicitSelection ? selectedIds : new Set<string>()}
+              selectedIds={selectedIds}
               onSelectIds={(ids) => {
-                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
+                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0
+                  ? 'default-all'
+                  : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
                 setSelectionWithSource(ids, source);
               }}
               onFocusFrame={setFocusedFrameId}
@@ -1474,7 +1470,9 @@ const activeFrames = useMemo(() => {
                 setCheckedChapterIds(prev => new Set([...prev, chapterId]));
               }}
               onSelectIds={(ids) => {
-                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0 ? 'default-all' : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
+                const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0
+                  ? 'default-all'
+                  : (chapters.some(ch => ch.frameIds.length === ids.size && ch.frameIds.every(id => ids.has(id))) ? 'chapter' : 'manual');
                 setSelectionWithSource(ids, source);
               }}
               onSettingsChange={setSettings} 
