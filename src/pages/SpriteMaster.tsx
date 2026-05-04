@@ -1476,6 +1476,8 @@ useEffect(() => {
               onDeleteChapter={handleDeleteChapter}
               onChapterCreated={(chapterId) => {
                 setCheckedChapterIds(prev => new Set([...prev, chapterId]));
+                setSelectionWithSource(new Set(), 'default-all');
+                setAllFramesManuallyOverridden(true);
               }}
               onSelectIds={(ids) => {
                 const source: 'default-all' | 'manual' | 'chapter' = ids.size === 0
