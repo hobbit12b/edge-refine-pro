@@ -472,6 +472,35 @@ export function SpriteAnalyzer({
     : focusedFrame;
 
   const hasSpriteBounds = Boolean(currentPreviewFrame?.trimmedBox);
+  const metadataFrame = currentPreviewFrame;
+  const metadataRows = [
+    { label: 'Frame ID', value: metadataFrame?.id ?? 'not available' },
+    { label: 'Frame #', value: metadataFrame ? String(metadataFrame.index + 1) : 'not available' },
+    { label: 'Original Size', value: metadataFrame ? `${metadataFrame.originalWidth} × ${metadataFrame.originalHeight}` : 'not available' },
+    { label: 'Canvas Size', value: settings?.frameSize ? `${settings.frameSize.width} × ${settings.frameSize.height}` : 'not available' },
+    {
+      label: 'Frame Bounds',
+      value: metadataFrame ? `x: 0, y: 0, w: ${metadataFrame.originalWidth}, h: ${metadataFrame.originalHeight}` : 'not available',
+    },
+    {
+      label: 'Sprite Bounds',
+      value: metadataFrame?.trimmedBox
+        ? `x: ${metadataFrame.trimmedBox.x}, y: ${metadataFrame.trimmedBox.y}, w: ${metadataFrame.trimmedBox.w}, h: ${metadataFrame.trimmedBox.h}`
+        : 'not calculated',
+    },
+    {
+      label: 'Pivot',
+      value: settings?.customPivot
+        ? `x: ${settings.customPivot.x.toFixed(3)}, y: ${settings.customPivot.y.toFixed(3)}`
+        : 'not available',
+    },
+    {
+      label: 'Offset',
+      value: metadataFrame?.offset ? `x: ${metadataFrame.offset.x}, y: ${metadataFrame.offset.y}` : 'not calculated',
+    },
+    { label: 'sourceSize', value: 'not calculated' },
+    { label: 'spriteSourceSize', value: 'not calculated' },
+  ];
 
   return (
     <div className="flex-1 w-full bg-[#0a0a0a] text-zinc-100 flex flex-col overflow-hidden">
@@ -598,6 +627,21 @@ export function SpriteAnalyzer({
                     <div />
                   </div>
                   <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest italic">Shift + klik = 10px</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-zinc-800/50 mt-2">
+                <div className="flex items-center gap-2 px-1">
+                  <HelpCircle size={12} className="text-cyan-400" />
+                  <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Frame Metadata</h4>
+                </div>
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2 space-y-1.5">
+                  {metadataRows.map((row) => (
+                    <div key={row.label} className="flex items-start justify-between gap-2 text-[8px]">
+                      <span className="text-zinc-500 uppercase tracking-widest font-bold">{row.label}</span>
+                      <span className="text-zinc-300 font-mono text-right break-all">{row.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
