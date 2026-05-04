@@ -15,7 +15,6 @@ import {
   Pause,
   Undo2,
   Target,
-  Maximize,
   Loader2,
   Save,
   LayoutList,
@@ -28,7 +27,8 @@ import {
   Anchor,
   RotateCcw,
   ArrowUpDown,
-  Check
+  Check,
+  Crosshair
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
 import { PlaybackControls } from './PlaybackControls';
@@ -309,9 +309,12 @@ export function SpriteAnalyzer({
   }, [focusedIndex, onionSkinDir, playbackFrames]);
 
   const toggleGridMode = () => {
-    const modes: ('none' | 'grid' | 'guide')[] = ['none', 'grid', 'guide'];
-    const currentIdx = modes.indexOf(settings.guideMode);
-    const nextMode = modes[(currentIdx + 1) % modes.length];
+    const nextMode = settings.guideMode === 'grid' ? 'none' : 'grid';
+    onSettingsChange({ ...settings, guideMode: nextMode });
+  };
+
+  const toggleCrosshairMode = () => {
+    const nextMode = settings.guideMode === 'guide' ? 'none' : 'guide';
     onSettingsChange({ ...settings, guideMode: nextMode });
   };
 
@@ -487,13 +490,31 @@ export function SpriteAnalyzer({
             <div className="p-2 space-y-3 bg-zinc-900/30 rounded-xl mb-4 border border-zinc-800/50">
               <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-1">Gidsen & Hulpmiddelen</h4>
               
+              {/* Pivot punt info */}
+              <div className="px-1 py-2 border-b border-zinc-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pivot punt</span>
+                </div>
+                <p className="text-[8px] text-zinc-600 leading-relaxed italic">
+                  Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-1.5">
                 <button 
                   onClick={toggleGridMode}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode !== 'none' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode === 'grid' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
                 >
                   <Grid size={14} />
                   <span className="text-[8px] font-black uppercase">Grid</span>
+                </button>
+                <button
+                  onClick={toggleCrosshairMode}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode === 'guide' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                >
+                  <Crosshair size={14} />
+                  <span className="text-[8px] font-black uppercase">Crosshair</span>
                 </button>
                 <div className={`rounded-xl border p-1 transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50' : 'bg-zinc-950 border-zinc-800'}`}>
                   <button 
@@ -517,13 +538,6 @@ export function SpriteAnalyzer({
                   <ArrowUpDown size={14} />
                   <span className="text-[8px] font-black uppercase">Grond</span>
                 </button>
-                <button 
-                  onClick={fitToScreen}
-                  className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 transition-all"
-                >
-                  <Maximize size={14} />
-                  <span className="text-[8px] font-black uppercase">Fit</span>
-                </button>
                 <button
                   onClick={() => setShowFrameBounds((prev) => !prev)}
                   className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
@@ -540,17 +554,6 @@ export function SpriteAnalyzer({
                     <span className="text-[8px] font-black uppercase">Sprite</span>
                   </button>
                 )}
-              </div>
-
-              {/* Pivot punt info */}
-              <div className="px-1 py-2 border-t border-zinc-800/50 mt-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pivot punt</span>
-                </div>
-                <p className="text-[8px] text-zinc-600 leading-relaxed italic">
-                  Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.
-                </p>
               </div>
 
               {/* Directional Alignment Controls Moved Here */}
