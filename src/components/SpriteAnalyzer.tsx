@@ -118,6 +118,7 @@ export function SpriteAnalyzer({
   const [editValue, setEditValue] = React.useState('');
   const timerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const playbackFrames = activeFrames;
 
@@ -229,14 +230,19 @@ export function SpriteAnalyzer({
   const fitToScreen = () => {
     const frameW = settings.frameSize.width * visualScale;
     const frameH = settings.frameSize.height * visualScale;
-    const containerW = containerRef.current?.parentElement?.clientWidth || window.innerWidth - 600;
-    const containerH = containerRef.current?.parentElement?.clientHeight || window.innerHeight - 200;
+    const viewportW = viewportRef.current?.clientWidth || window.innerWidth - 600;
+    const viewportH = viewportRef.current?.clientHeight || window.innerHeight - 260;
+    const reservedBottomControls = 120;
+    const horizontalPadding = 32;
+    const verticalPadding = 32;
+    const containerW = Math.max(100, viewportW - horizontalPadding);
+    const containerH = Math.max(100, viewportH - reservedBottomControls - verticalPadding);
     
     if (frameW > 0 && frameH > 0) {
-      const scaleW = (containerW - 100) / frameW;
-      const scaleH = (containerH - 100) / frameH;
-      const fitScale = Math.min(scaleW, scaleH) * 100;
-      onSettingsChange({ ...settings, analyzerZoom: Math.floor(fitScale) });
+      const scaleW = containerW / frameW;
+      const scaleH = containerH / frameH;
+      const fitScale = Math.max(10, Math.min(800, Math.floor(Math.min(scaleW, scaleH) * 100)));
+      onSettingsChange({ ...settings, analyzerZoom: fitScale });
     }
   };
 
@@ -457,13 +463,21 @@ export function SpriteAnalyzer({
                   <Grid size={14} />
                   <span className="text-[8px] font-black uppercase">Grid</span>
                 </button>
-                <button 
-                  onClick={() => onSettingsChange({ ...settings, showOnionSkin: !settings.showOnionSkin })}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                >
-                  <Layers size={14} />
-                  <span className="text-[8px] font-black uppercase">Onion</span>
-                </button>
+                <div className={`rounded-xl border p-1 transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50' : 'bg-zinc-950 border-zinc-800'}`}>
+                  <button 
+                    onClick={() => onSettingsChange({ ...settings, showOnionSkin: !settings.showOnionSkin })}
+                    className={`w-full flex flex-col items-center justify-center gap-1 p-1.5 rounded-lg transition-all ${settings.showOnionSkin ? 'text-blue-400' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  >
+                    <Layers size={14} />
+                    <span className="text-[8px] font-black uppercase">Onion</span>
+                  </button>
+                  {settings.showOnionSkin && (
+                    <div className="mt-1 flex items-center bg-zinc-950 rounded-md border border-zinc-800 p-0.5">
+                      <button onClick={() => setOnionSkinDir(-1)} className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === -1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>PREV</button>
+                      <button onClick={() => setOnionSkinDir(1)} className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === 1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>NEXT</button>
+                    </div>
+                  )}
+                </div>
                 <button 
                   onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })}
                   className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showGroundLine ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
@@ -479,23 +493,6 @@ export function SpriteAnalyzer({
                   <span className="text-[8px] font-black uppercase">Fit</span>
                 </button>
               </div>
-
-              {settings.showOnionSkin && (
-                <div className="flex items-center bg-zinc-950 rounded-lg border border-zinc-800 p-0.5">
-                  <button 
-                    onClick={() => setOnionSkinDir(-1)}
-                    className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === -1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
-                  >
-                    PREV
-                  </button>
-                  <button 
-                    onClick={() => setOnionSkinDir(1)}
-                    className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === 1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
-                  >
-                    NEXT
-                  </button>
-                </div>
-              )}
 
               {/* Pivot punt info */}
               <div className="px-1 py-2 border-t border-zinc-800/50 mt-2">
@@ -650,6 +647,7 @@ export function SpriteAnalyzer({
 
         {/* Main Preview */}
         <div 
+          ref={viewportRef}
           className="flex-1 relative overflow-hidden bg-[#050505] checkerboard-dark flex items-center justify-center p-4 md:p-8"
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -668,11 +666,14 @@ export function SpriteAnalyzer({
               {settings.showGroundLine && (
                 <div 
                   className="absolute left-[-20%] right-[-20%] h-px bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] z-[45] pointer-events-all"
-                  style={{ top: `${settings.groundLineY}%`, cursor: isDraggingGround ? 'grabbing' : 'ns-resize' }}
+                  style={{ top: `${settings.groundLineY}%`, height: '2px', cursor: isDraggingGround ? 'grabbing' : 'ns-resize' }}
                   onMouseDown={(e) => { e.stopPropagation(); setIsDraggingGround(true); }}
                 >
+                  <div className="absolute left-2 -top-4 w-8 h-8 rounded-full bg-emerald-500/95 border-2 border-white shadow-[0_0_12px_rgba(16,185,129,0.9)] flex items-center justify-center">
+                    <ArrowUpDown size={12} className="text-white" />
+                  </div>
                   <div className="absolute right-0 -top-6 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded flex items-center gap-2">
-                    <ArrowUpDown size={10} /> GRONDLIJN
+                    GRONDLIJN
                   </div>
                 </div>
               )}
