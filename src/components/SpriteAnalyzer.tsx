@@ -532,22 +532,21 @@ export function SpriteAnalyzer({
           <div className="p-3 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/10">
             <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
               <LayoutList size={12} className="text-purple-500" />
-              Naam geselecteerde frames
+              Geselecteerde frames
             </h3>
           </div>
           
           <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
             {/* Alignment & Guides Section */}
             <div className="p-2 space-y-3 bg-zinc-900/30 rounded-xl mb-4 border border-zinc-800/50">
-              <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest px-1">Gidsen & Hulpmiddelen</h4>
               
               {/* Pivot punt info */}
               <div className="px-1 py-2 border-b border-zinc-800/50">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pivot punt</span>
+                  <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Pivot punt</span>
                 </div>
-                <p className="text-[8px] text-zinc-600 leading-relaxed italic">
+                <p className="text-[8px] text-zinc-400/90 leading-relaxed italic">
                   Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.
                 </p>
               </div>
@@ -673,7 +672,7 @@ export function SpriteAnalyzer({
                         className="flex-1 text-left text-[9px] font-bold text-zinc-300 hover:text-white truncate ml-2"
                       >
                         {chapter.name}
-                        <span className="ml-1 text-[7px] text-zinc-600 font-mono">
+                        <span className="ml-1 text-[7px] text-zinc-400 font-mono">
                           ({allChapterIds.size})
                         </span>
                       </button>
@@ -785,9 +784,9 @@ export function SpriteAnalyzer({
                     style={{ width: settings.frameSize.width * visualScale, height: settings.frameSize.height * visualScale, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                   />
                   <div 
-                    className="absolute inset-0 opacity-20" 
+                    className="absolute inset-0 opacity-32" 
                     style={{ 
-                      backgroundImage: 'linear-gradient(to right, #a855f7 1px, transparent 1px), linear-gradient(to bottom, #a855f7 1px, transparent 1px)', 
+                      backgroundImage: 'linear-gradient(to right, rgba(216,180,254,0.55) 1px, transparent 1px), linear-gradient(to bottom, rgba(216,180,254,0.55) 1px, transparent 1px)', 
                       backgroundSize: `${32 * visualScale}px ${32 * visualScale}px` 
                     }} 
                   />
