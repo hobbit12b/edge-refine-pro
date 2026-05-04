@@ -69,6 +69,7 @@ interface SpriteAnalyzerProps {
   steps: any[];
   activeFrames: Frame[];
   isAllFramesChecked: boolean;
+  selectionPreviewColor: string | null;
 }
 
 
@@ -106,6 +107,7 @@ export function SpriteAnalyzer({
   steps,
   activeFrames,
   isAllFramesChecked,
+  selectionPreviewColor,
 }: SpriteAnalyzerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -200,7 +202,6 @@ export function SpriteAnalyzer({
     if (chapter?.color) {
       if (checkedChapterIds.has(chapter.id)) return chapter.color;
     }
-    if (isSelected && !isAllFramesChecked) return '#7c3aed';
     return '#3f3f46';
   };
 
@@ -1019,7 +1020,7 @@ export function SpriteAnalyzer({
                                 }}
                               >
                                 <div 
-                                  className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
+                                  className={`absolute inset-x-0 top-0 h-3 text-[8px] font-black uppercase text-center transition-colors z-20 ${
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
                                   style={{ color: isFocused ? '#ffffff' : getContrastingTextColor(stripColors[0] || '#3f3f46') }}
@@ -1029,7 +1030,9 @@ export function SpriteAnalyzer({
                                       <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
                                     ))}
                                   </div>
-                                  {frame.index + 1}
+                                  <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm bg-black/60 text-white leading-none">
+                                    {frame.index + 1}
+                                  </span>
                                 </div>
                                 <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">
                                   {frame?.url && (
@@ -1045,6 +1048,12 @@ export function SpriteAnalyzer({
                                   <div className="absolute top-1 right-1 px-1 bg-purple-600 text-white text-[6px] font-bold rounded shadow-sm z-30">
                                     {frame.durationMultiplier}x
                                   </div>
+                                )}
+                                {isSelected && selectionPreviewColor && (
+                                  <div
+                                    className="absolute inset-0 rounded-xl pointer-events-none z-20"
+                                    style={{ boxShadow: `0 0 0 2px ${selectionPreviewColor}, 0 0 10px ${selectionPreviewColor}` }}
+                                  />
                                 )}
                               </div>
                             </div>
