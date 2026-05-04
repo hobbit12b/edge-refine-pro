@@ -116,6 +116,8 @@ export function SpriteAnalyzer({
   const [isPanningViewport, setIsPanningViewport] = useState(false);
   const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
   const [onionSkinDir, setOnionSkinDir] = useState<-1 | 1>(-1);
+  const [showFrameBounds, setShowFrameBounds] = useState(true);
+  const [showSpriteBounds, setShowSpriteBounds] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -466,6 +468,8 @@ export function SpriteAnalyzer({
     ? playbackFrames[safePlaybackIndex]
     : focusedFrame;
 
+  const hasSpriteBounds = Boolean(currentPreviewFrame?.trimmedBox);
+
   return (
     <div className="flex-1 w-full bg-[#0a0a0a] text-zinc-100 flex flex-col overflow-hidden">
       <div className="flex-1 flex overflow-hidden relative">
@@ -520,6 +524,22 @@ export function SpriteAnalyzer({
                   <Maximize size={14} />
                   <span className="text-[8px] font-black uppercase">Fit</span>
                 </button>
+                <button
+                  onClick={() => setShowFrameBounds((prev) => !prev)}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                >
+                  <Target size={14} />
+                  <span className="text-[8px] font-black uppercase">Frame</span>
+                </button>
+                {hasSpriteBounds && (
+                  <button
+                    onClick={() => setShowSpriteBounds((prev) => !prev)}
+                    className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showSpriteBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
+                  >
+                    <Target size={14} />
+                    <span className="text-[8px] font-black uppercase">Sprite</span>
+                  </button>
+                )}
               </div>
 
               {/* Pivot punt info */}
@@ -796,21 +816,38 @@ export function SpriteAnalyzer({
                     />
                   )}
 
-                  {/* Canvas Bound Overlay for Analyzer */}
-                  <div 
-                    className="absolute border-2 border-red-500/50 pointer-events-none z-50 shadow-[0_0_0_10000px_rgba(0,0,0,0.5)]"
-                    style={{
-                      left: '50%',
-                      top: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: `${settings.frameSize.width * visualScale}px`,
-                      height: `${settings.frameSize.height * visualScale}px`,
-                    }}
-                  >
-                    <div className="absolute -top-6 left-0 bg-red-500/80 text-[10px] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
-                      Canvas Kader (Crop Zone)
+                  {showFrameBounds && (
+                    <div 
+                      className="absolute border-2 border-red-500/60 pointer-events-none z-50"
+                      style={{
+                        left: '50%',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: `${settings.frameSize.width * visualScale}px`,
+                        height: `${settings.frameSize.height * visualScale}px`,
+                      }}
+                    >
+                      <div className="absolute -top-6 left-0 bg-red-500/80 text-[10px] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                        Frame bounds
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {showSpriteBounds && currentPreviewFrame?.trimmedBox && (
+                    <div
+                      className="absolute border border-amber-300 pointer-events-none z-[55]"
+                      style={{
+                        left: `calc(50% + ${(currentPreviewFrame.offset?.x || 0) * visualScale}px + ${(currentPreviewFrame.trimmedBox.x - currentPreviewFrame.originalWidth / 2) * visualScale}px)`,
+                        top: `calc(50% + ${(currentPreviewFrame.offset?.y || 0) * visualScale}px + ${(currentPreviewFrame.trimmedBox.y - currentPreviewFrame.originalHeight / 2) * visualScale}px)`,
+                        width: `${currentPreviewFrame.trimmedBox.w * visualScale}px`,
+                        height: `${currentPreviewFrame.trimmedBox.h * visualScale}px`,
+                      }}
+                    >
+                      <div className="absolute -top-5 left-0 bg-amber-400/90 text-[9px] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                        Sprite bounds
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {!isPlaying && (
