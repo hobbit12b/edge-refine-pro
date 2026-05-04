@@ -181,10 +181,9 @@ function SortableFrameItem({
            />
         )}
         <div
-          className="absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer overflow-hidden"
+          className="absolute inset-x-0 top-0 h-3 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer overflow-hidden"
           style={{
             color: getContrastingTextColor(stripColors[0] || '#3f3f46'),
-            boxShadow: selectionPreviewColor ? `inset 0 0 0 1px ${selectionPreviewColor}` : undefined,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -202,7 +201,9 @@ function SortableFrameItem({
               <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
             ))}
           </div>
-          {frame.index + 1}
+          <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm bg-black/60 text-white leading-none">
+            {frame.index + 1}
+          </span>
         </div>
         <div 
           className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50"
@@ -237,6 +238,12 @@ function SortableFrameItem({
           <div className="absolute top-1 right-1 px-1 bg-purple-600 text-white text-[6px] font-bold rounded shadow-sm z-30">
             {frame.durationMultiplier}x
           </div>
+        )}
+        {isSelected && selectionPreviewColor && (
+          <div
+            className="absolute inset-0 rounded-xl pointer-events-none z-20"
+            style={{ boxShadow: `0 0 0 2px ${selectionPreviewColor}, 0 0 10px ${selectionPreviewColor}` }}
+          />
         )}
       </div>
     </div>

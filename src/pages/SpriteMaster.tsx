@@ -1440,6 +1440,7 @@ const handleAllFramesToggle = useCallback(() => {
               steps={steps}
               activeFrames={activeFrames}
               isAllFramesChecked={isAllFramesChecked}
+              selectionPreviewColor={selectionPreviewColor}
             />
           </motion.div>
         ) : activeView === 'test' ? (
@@ -1549,6 +1550,7 @@ const handleAllFramesToggle = useCallback(() => {
               currentIndex={editorCurrentIndex}
               setCurrentIndex={setEditorCurrentIndex}
               steps={steps}
+              selectionPreviewColor={selectionPreviewColor}
               isPickingColor={isPickingColor}
               onColorPick={handleColorPicked}
               prePlaybackFocusedFrameId={prePlaybackFocusedFrameId}
