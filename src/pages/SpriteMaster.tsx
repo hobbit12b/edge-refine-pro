@@ -728,6 +728,7 @@ const handleAllFramesToggle = useCallback(() => {
         ...frame,
         blob,
         url,
+        aiBgRemoved: false,
         originalWidth: canvas.width,
         originalHeight: canvas.height,
       };
@@ -797,9 +798,9 @@ const handleAllFramesToggle = useCallback(() => {
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const trimmedBox = getTrimmedBox(imageData);
-      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, trimmedBox } : f));
+      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, trimmedBox, aiBgRemoved: false } : f));
     } else {
-      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl } : f));
+      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, aiBgRemoved: false } : f));
     }
   }, [pushToHistory]);
 
@@ -1185,7 +1186,7 @@ const handleAllFramesToggle = useCallback(() => {
       cx.drawImage(img, 0, 0);
       trimmedBox = getTrimmedBox(cx.getImageData(0, 0, c.width, c.height));
     }
-    return { ...frame, blob: newBlob, url: newUrl, trimmedBox };
+    return { ...frame, blob: newBlob, url: newUrl, trimmedBox, aiBgRemoved: false };
   }, []);
 
   const handlePickColor = () => {
