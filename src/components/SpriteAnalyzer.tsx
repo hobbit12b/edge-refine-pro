@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
 import { PlaybackControls } from './PlaybackControls';
-import { getContrastingTextColor } from '@/utils/chapterColors';
 
 interface SpriteAnalyzerProps {
   frames: Frame[];
@@ -1022,14 +1021,14 @@ export function SpriteAnalyzer({
                                   className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
-                                  style={{ color: isFocused ? '#ffffff' : getContrastingTextColor(stripColors[0] || '#3f3f46') }}
+                                  style={{ color: '#ffffff' }}
                                 >
-                                  <div className="absolute inset-0 flex pointer-events-none">
+                                  <div className="absolute inset-0 z-0 flex pointer-events-none">
                                     {stripColors.map((color, idx) => (
                                       <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
                                     ))}
                                   </div>
-                                  {frame.index + 1}
+                                  <span className="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] [text-shadow:0_0_1px_rgba(0,0,0,1),0_1px_2px_rgba(0,0,0,0.95)]">{frame.index + 1}</span>
                                 </div>
                                 <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">
                                   {frame?.url && (

@@ -30,7 +30,6 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getContrastingTextColor } from '@/utils/chapterColors';
 
 interface RightSidebarProps {
   frames: Frame[];
@@ -183,7 +182,7 @@ function SortableFrameItem({
         <div
           className="absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer overflow-hidden"
           style={{
-            color: getContrastingTextColor(stripColors[0] || '#3f3f46'),
+            color: '#ffffff',
             boxShadow: selectionPreviewColor ? `inset 0 0 0 1px ${selectionPreviewColor}` : undefined,
           }}
           onClick={(e) => {
@@ -197,12 +196,12 @@ function SortableFrameItem({
             onNormalClick();
           }}
         >
-          <div className="absolute inset-0 flex pointer-events-none">
+          <div className="absolute inset-0 z-0 flex pointer-events-none">
             {stripColors.map((color, idx) => (
               <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
             ))}
           </div>
-          {frame.index + 1}
+          <span className="relative z-10 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] [text-shadow:0_0_1px_rgba(0,0,0,1),0_1px_2px_rgba(0,0,0,0.95)]">{frame.index + 1}</span>
         </div>
         <div 
           className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50"
