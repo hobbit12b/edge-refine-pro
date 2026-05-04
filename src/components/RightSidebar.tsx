@@ -414,10 +414,10 @@ export function RightSidebar({
                   const chapter = chapters.find(c => c.frameIds.includes(frame.id));
                   const checkedChapter = chapters.find(c => checkedChapterIds.has(c.id) && c.frameIds.includes(frame.id));
                   const isSelected = selectedIds.has(frame.id);
-                  const stripColor = chapter?.color
-                    ? chapter.color
-                    : (!isAllFramesMode && isSelected && selectionPreviewColor)
-                      ? selectionPreviewColor
+                  const stripColor = (isSelected && selectionPreviewColor)
+                    ? selectionPreviewColor
+                    : chapter?.color
+                      ? chapter.color
                       : isAllFramesMode
                         ? '#3f3f46'
                         : 'rgba(0,0,0,0.6)';
