@@ -228,7 +228,8 @@ const orderedCheckedFrames = useMemo(() => {
 const activeFrames = useMemo(() => {
   if (isAllFramesChecked) return frames;
 
-  return orderedCheckedFrames;
+  // Defensive fallback: never allow an empty playback list when frames exist.
+  return orderedCheckedFrames.length > 0 ? orderedCheckedFrames : frames;
 }, [frames, isAllFramesChecked, orderedCheckedFrames]);
 
 useEffect(() => {
@@ -244,6 +245,19 @@ useEffect(() => {
     setFocusedFrameId(activeFrames[0].id);
   }
 }, [activeFrames, focusedFrameId, setFocusedFrameId]);
+
+
+const handleAllFramesToggle = useCallback(() => {
+  // Guard: with no chapters (or no checked chapters), all-frames mode must stay enabled.
+  if (chapters.length === 0 || checkedChapterIds.size === 0) {
+    setIsAllFramesChecked(true);
+    setAllFramesManuallyOverridden(false);
+    return;
+  }
+
+  setIsAllFramesChecked((prev) => !prev);
+  setAllFramesManuallyOverridden(true);
+}, [chapters.length, checkedChapterIds.size]);
 
   const selectionPreviewColor = useMemo(() => {
     if (selectionSource !== 'manual' || selectedIds.size < 1) return null;
@@ -1417,10 +1431,7 @@ useEffect(() => {
               onStartOver={handleStartOver}
               onReorderChapters={reorderChapters}
               onDeleteChapter={handleDeleteChapter}
-              onAllFramesToggle={() => {
-                setIsAllFramesChecked(prev => !prev);
-                setAllFramesManuallyOverridden(true);
-              }}
+              onAllFramesToggle={handleAllFramesToggle}
               onToggleSelect={(id, shift, ctrl) => {
                 toggleSelect(id, shift, ctrl);
                 setSelectionSource('manual');
@@ -1510,10 +1521,7 @@ useEffect(() => {
               onEdgeOp={handleEdgeOp}
               edgeBusy={edgeBusy}
               isAllFramesMode={isAllFramesMode}
-              onAllFramesToggle={() => {
-                setIsAllFramesChecked(prev => !prev);
-                setAllFramesManuallyOverridden(true);
-              }}
+              onAllFramesToggle={handleAllFramesToggle}
             />
             
             <MainPreview 
