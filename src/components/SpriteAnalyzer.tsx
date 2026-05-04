@@ -423,7 +423,14 @@ export function SpriteAnalyzer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIds, focusedFrameId, isPlaying, handleTogglePlay, onUpdateFramesOffset, navigateFrame]);
 
-  const currentPreviewFrame = isPlaying ? playbackFrames[currentIndex % playbackFrames.length] : focusedFrame;
+  const safePlaybackLength = playbackFrames.length;
+  const safePlaybackIndex = safePlaybackLength > 0
+    ? ((currentIndex % safePlaybackLength) + safePlaybackLength) % safePlaybackLength
+    : 0;
+
+  const currentPreviewFrame = isPlaying && safePlaybackLength > 0
+    ? playbackFrames[safePlaybackIndex]
+    : focusedFrame;
 
   return (
     <div className="flex-1 w-full bg-[#0a0a0a] text-zinc-100 flex flex-col overflow-hidden">
@@ -787,7 +794,7 @@ export function SpriteAnalyzer({
               zoom={settings.analyzerZoom}
               onZoomChange={(val) => onSettingsChange({ ...settings, analyzerZoom: val })}
               onFitToScreen={fitToScreen}
-              currentIndex={isPlaying ? (currentIndex % playbackFrames.length) : (focusedIndex !== -1 ? focusedIndex : 0)}
+              currentIndex={isPlaying ? safePlaybackIndex : (focusedIndex !== -1 ? focusedIndex : 0)}
               totalFrames={playbackFrames.length}
               className="w-full max-w-5xl !bg-transparent !border-none !shadow-none"
             />
@@ -822,7 +829,7 @@ export function SpriteAnalyzer({
                         {chapterFrames.map((frame) => {
                           const isFocused = focusedFrameId === frame.id;
                           const isSelected = selectedIds.has(frame.id);
-                          const isPlayingHighlight = isPlaying && playbackFrames[currentIndex % playbackFrames.length]?.id === frame.id;
+                          const isPlayingHighlight = isPlaying && safePlaybackLength > 0 && playbackFrames[safePlaybackIndex]?.id === frame.id;
                           const stripColor = getTopStripColor(frame.id, isSelected);
 
                           return (
