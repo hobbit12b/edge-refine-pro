@@ -3,6 +3,7 @@ import {
   Plus, 
   Minus, 
   Copy,
+  GripVertical,
   X,
   Trash2,
   ChevronUp,
@@ -160,9 +161,17 @@ function SortableFrameItem({
           }
           onNormalClick();
         }}
-        {...attributes}
-        {...listeners}
       >
+        <button
+          type="button"
+          className="absolute top-1 right-1 z-40 p-0.5 rounded bg-black/30 text-zinc-200 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          aria-label={`Drag frame ${frame.index + 1} to reorder`}
+          onClick={(e) => e.stopPropagation()}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={10} />
+        </button>
         {chapterColor && (
            <div 
              className="absolute top-1 left-1 w-2 h-2 rounded-full z-30 shadow-sm border border-black/20"
