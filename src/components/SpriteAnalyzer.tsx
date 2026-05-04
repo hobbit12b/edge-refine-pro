@@ -118,6 +118,7 @@ export function SpriteAnalyzer({
   const [onionSkinDir, setOnionSkinDir] = useState<-1 | 1>(-1);
   const [showFrameBounds, setShowFrameBounds] = useState(true);
   const [showSpriteBounds, setShowSpriteBounds] = useState(false);
+  const [showMetadataPanel, setShowMetadataPanel] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -551,61 +552,6 @@ export function SpriteAnalyzer({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5">
-                <button 
-                  onClick={toggleGridMode}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode === 'grid' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                >
-                  <Grid size={14} />
-                  <span className="text-[8px] font-black uppercase">Grid</span>
-                </button>
-                <button
-                  onClick={toggleCrosshairMode}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.guideMode === 'guide' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                >
-                  <Crosshair size={14} />
-                  <span className="text-[8px] font-black uppercase">Crosshair</span>
-                </button>
-                <div className={`rounded-xl border p-1 transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50' : 'bg-zinc-950 border-zinc-800'}`}>
-                  <button 
-                    onClick={() => onSettingsChange({ ...settings, showOnionSkin: !settings.showOnionSkin })}
-                    className={`w-full flex flex-col items-center justify-center gap-1 p-1.5 rounded-lg transition-all ${settings.showOnionSkin ? 'text-blue-400' : 'text-zinc-600 hover:text-zinc-400'}`}
-                  >
-                    <Layers size={14} />
-                    <span className="text-[8px] font-black uppercase">Onion</span>
-                  </button>
-                  {settings.showOnionSkin && (
-                    <div className="mt-1 flex items-center bg-zinc-950 rounded-md border border-zinc-800 p-0.5">
-                      <button onClick={() => setOnionSkinDir(-1)} className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === -1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>PREV</button>
-                      <button onClick={() => setOnionSkinDir(1)} className={`flex-1 py-1 rounded text-[8px] font-bold transition-all ${onionSkinDir === 1 ? 'bg-blue-600 text-white' : 'text-zinc-600 hover:text-zinc-400'}`}>NEXT</button>
-                    </div>
-                  )}
-                </div>
-                <button 
-                  onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showGroundLine ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                >
-                  <ArrowUpDown size={14} />
-                  <span className="text-[8px] font-black uppercase">Grond</span>
-                </button>
-                <button
-                  onClick={() => setShowFrameBounds((prev) => !prev)}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                >
-                  <Target size={14} />
-                  <span className="text-[8px] font-black uppercase">Frame bounds</span>
-                </button>
-                {hasSpriteBounds && (
-                  <button
-                    onClick={() => setShowSpriteBounds((prev) => !prev)}
-                    className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showSpriteBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
-                  >
-                    <Target size={14} />
-                    <span className="text-[8px] font-black uppercase">Sprite bounds</span>
-                  </button>
-                )}
-              </div>
-
               {/* Directional Alignment Controls Moved Here */}
               <div className="space-y-3 pt-4 border-t border-zinc-800/50 mt-2">
                 <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
@@ -747,18 +693,26 @@ export function SpriteAnalyzer({
           </div>
 
           <div className="p-3 border-t border-zinc-800 bg-zinc-900/20 space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <HelpCircle size={12} className="text-cyan-400" />
-              <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Frame Metadata</h4>
-            </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2 space-y-1.5">
-              {metadataRows.map((row) => (
-                <div key={row.label} className="flex items-start justify-between gap-2 text-[8px]">
-                  <span className="text-zinc-500 uppercase tracking-widest font-bold">{row.label}</span>
-                  <span className="text-zinc-300 font-mono text-right break-all">{row.value}</span>
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowMetadataPanel((prev) => !prev)}
+              className="w-full flex items-center justify-between gap-2 px-1 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <HelpCircle size={12} className="text-cyan-400" />
+                <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Frame metadata</h4>
+              </div>
+              <ChevronDown size={12} className={`text-zinc-500 transition-transform ${showMetadataPanel ? 'rotate-180' : ''}`} />
+            </button>
+            {showMetadataPanel && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2 space-y-1.5">
+                {metadataRows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-2 text-[8px]">
+                    <span className="text-zinc-500 uppercase tracking-widest font-bold">{row.label}</span>
+                    <span className="text-zinc-300 font-mono text-right break-all">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -787,6 +741,18 @@ export function SpriteAnalyzer({
           }}
           style={{ cursor: isSpacePressed ? (isPanningViewport ? 'grabbing' : 'grab') : undefined }}
         >
+          <div className="absolute top-3 left-3 right-3 z-[70] flex items-center gap-2 rounded-xl border border-zinc-800/90 bg-zinc-950/90 p-2 backdrop-blur-sm">
+            <button onClick={toggleGridMode} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${settings.guideMode === 'grid' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Grid size={12} />Grid</button>
+            <button onClick={toggleCrosshairMode} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${settings.guideMode === 'guide' ? 'bg-purple-600/10 border-purple-500/50 text-purple-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Crosshair size={12} />Crosshair</button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => onSettingsChange({ ...settings, showOnionSkin: !settings.showOnionSkin })} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Layers size={12} />Onion</button>
+              <button onClick={() => setOnionSkinDir(-1)} disabled={!settings.showOnionSkin} className="px-2 py-1 rounded-md text-[9px] font-bold border border-zinc-800 text-zinc-400 disabled:opacity-40">PREV</button>
+              <button onClick={() => setOnionSkinDir(1)} disabled={!settings.showOnionSkin} className="px-2 py-1 rounded-md text-[9px] font-bold border border-zinc-800 text-zinc-400 disabled:opacity-40">NEXT</button>
+            </div>
+            <button onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${settings.showGroundLine ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><ArrowUpDown size={12} />Ground</button>
+            <button onClick={() => setShowFrameBounds((prev) => !prev)} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Target size={12} />Frame bounds</button>
+            {hasSpriteBounds && <button onClick={() => setShowSpriteBounds((prev) => !prev)} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${showSpriteBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Target size={12} />Sprite bounds</button>}
+          </div>
           <div ref={workAreaRef} className="absolute inset-x-0 top-0 bottom-24 pointer-events-none" />
           <div 
             ref={containerRef}
