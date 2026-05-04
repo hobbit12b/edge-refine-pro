@@ -728,6 +728,7 @@ const handleAllFramesToggle = useCallback(() => {
         ...frame,
         blob,
         url,
+        aiBgRemoved: false,
         originalWidth: canvas.width,
         originalHeight: canvas.height,
       };
@@ -797,9 +798,9 @@ const handleAllFramesToggle = useCallback(() => {
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const trimmedBox = getTrimmedBox(imageData);
-      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, trimmedBox } : f));
+      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, trimmedBox, aiBgRemoved: false } : f));
     } else {
-      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl } : f));
+      setFrames(prev => prev.map(f => f.id === id ? { ...f, blob: newBlob, url: newUrl, aiBgRemoved: false } : f));
     }
   }, [pushToHistory]);
 
@@ -1020,14 +1021,33 @@ const handleAllFramesToggle = useCallback(() => {
   const processBackgroundRemoval = async (targetIds: string[]) => {
     if (targetIds.length === 0) return;
 
+    const targetSet = new Set(targetIds);
+    const toProcessIds = frames
+      .filter((frame) => targetSet.has(frame.id) && frame.aiBgRemoved !== true)
+      .map((frame) => frame.id);
+    const skippedCount = targetIds.length - toProcessIds.length;
+
+    if (toProcessIds.length === 0) {
+      toast({
+        description: 'Alle geselecteerde frames zijn al verwerkt door AI BG Remover.',
+      });
+      return;
+    }
+
+    if (skippedCount > 0) {
+      toast({
+        description: `${skippedCount} frame${skippedCount === 1 ? '' : 's'} overgeslagen (al verwerkt).`,
+      });
+    }
+
     pushToHistory();
-    setRemovalState({ active: true, current: 0, total: targetIds.length, progress: 0 });
+    setRemovalState({ active: true, current: 0, total: toProcessIds.length, progress: 0 });
 
     try {
       const newFrames = [...frames];
       
-      for (let i = 0; i < targetIds.length; i++) {
-        const id = targetIds[i];
+      for (let i = 0; i < toProcessIds.length; i++) {
+        const id = toProcessIds[i];
         const frameIdx = newFrames.findIndex(f => f.id === id);
         if (frameIdx === -1) continue;
 
@@ -1096,6 +1116,7 @@ const handleAllFramesToggle = useCallback(() => {
               ...frame,
               blob: mergedBlob,
               url: newUrl,
+              aiBgRemoved: true,
               trimmedBox
             };
           }
@@ -1104,7 +1125,7 @@ const handleAllFramesToggle = useCallback(() => {
         setRemovalState(prev => ({
           ...prev,
           current: i + 1,
-          progress: (i + 1) / targetIds.length
+          progress: (i + 1) / toProcessIds.length
         }));
         
         setFrames([...newFrames]);
@@ -1165,7 +1186,7 @@ const handleAllFramesToggle = useCallback(() => {
       cx.drawImage(img, 0, 0);
       trimmedBox = getTrimmedBox(cx.getImageData(0, 0, c.width, c.height));
     }
-    return { ...frame, blob: newBlob, url: newUrl, trimmedBox };
+    return { ...frame, blob: newBlob, url: newUrl, trimmedBox, aiBgRemoved: false };
   }, []);
 
   const handlePickColor = () => {

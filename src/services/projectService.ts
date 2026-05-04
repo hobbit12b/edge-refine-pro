@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { AnimationChapter, Frame, KeyBinding, SpriteSheetSettings } from '@/types';
 
-type SerializedFrame = Pick<Frame, 'id' | 'durationMultiplier' | 'offset' | 'trimmedBox' | 'originalWidth' | 'originalHeight'> & {
+type SerializedFrame = Pick<Frame, 'id' | 'durationMultiplier' | 'offset' | 'trimmedBox' | 'originalWidth' | 'originalHeight' | 'aiBgRemoved'> & {
   filename: string;
 };
 
@@ -36,6 +36,7 @@ export async function serializeProject({
       trimmedBox: f.trimmedBox,
       originalWidth: f.originalWidth,
       originalHeight: f.originalHeight,
+      aiBgRemoved: f.aiBgRemoved,
       filename: `frame_${f.id}.png`,
     })),
   };
