@@ -536,7 +536,6 @@ export function LeftSidebar({
             <span className="text-[10px] font-medium text-zinc-400 group-hover:text-zinc-200">Zachte rand (anti-alias)</span>
           </label>
 
-          <p className="text-[9px] text-zinc-500 leading-relaxed">Atlas mode gebruikt variabele framegroottes, trim en JSON-metadata. Gebruik Fixed grid alleen als je engine of workflow vaste cellen vereist.</p>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={onApplyColorRemoval}
@@ -609,20 +608,20 @@ export function LeftSidebar({
 
         {/* Packing & Optimization */}
         <section className="space-y-4 pt-4 border-t border-zinc-900">
-          <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Atlas instellingen</h3>
+          <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Inpakken & Optimalisatie</h3>
           
           <div className="grid grid-cols-2 gap-2">
             <button 
               onClick={() => updateSetting('packingMethod', 'grid')}
               className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${settings.packingMethod === 'grid' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
             >
-              Fixed grid (legacy)
+              Grid (Raster)
             </button>
             <button 
               onClick={() => updateSetting('packingMethod', 'bin')}
               className={`p-2 rounded-lg border text-[10px] font-bold uppercase transition-all ${settings.packingMethod === 'bin' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}
             >
-              Atlas packing
+              Smart (Bin)
             </button>
           </div>
 
@@ -634,7 +633,7 @@ export function LeftSidebar({
                 onChange={(e) => updateSetting('trimSprites', e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-zinc-800 bg-zinc-900 text-purple-500 focus:ring-purple-500"
               />
-              <span className="text-[10px] font-medium text-zinc-400 group-hover:text-zinc-200">Trim transparante ruimte</span>
+              <span className="text-[10px] font-medium text-zinc-400 group-hover:text-zinc-200">Automatisch Bijsnijden (Trim)</span>
             </label>
             
             <div className="grid grid-cols-2 gap-4">
@@ -697,9 +696,6 @@ export function LeftSidebar({
             onChange={(e) => updateSetting('padding', parseInt(e.target.value))}
           />
           <p className="text-[8px] text-zinc-600 leading-tight">Witruimte tussen frames (voorkomt vlekschade/bleeding).</p>
-          <p className="text-[8px] text-zinc-600 leading-tight">Framegrootte is de bronmaat per frame. Visuele grootte in de game regel je via pivot, offset en scale in de engine.</p>
-          <p className="text-[8px] text-zinc-600 leading-tight">Voor animatieconsistentie zijn pivot en offset belangrijker dan gelijke framegroottes.</p>
-
         </div>
       </div>
     </div>
