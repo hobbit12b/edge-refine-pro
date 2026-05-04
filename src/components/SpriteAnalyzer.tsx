@@ -232,12 +232,12 @@ export function SpriteAnalyzer({
     const frameH = settings.frameSize.height * visualScale;
     const viewportW = viewportRef.current?.clientWidth || window.innerWidth - 600;
     const viewportH = viewportRef.current?.clientHeight || window.innerHeight - 260;
-    const reservedBottomControls = 120;
-    const horizontalPadding = 32;
-    const verticalPadding = 32;
+    const controlsH = viewportRef.current?.querySelector('[data-analyzer-controls="true"]')?.clientHeight || 96;
+    const horizontalPadding = 64;
+    const verticalPadding = 64;
     const containerW = Math.max(100, viewportW - horizontalPadding);
-    const containerH = Math.max(100, viewportH - reservedBottomControls - verticalPadding);
-    
+    const containerH = Math.max(100, viewportH - controlsH - verticalPadding);
+
     if (frameW > 0 && frameH > 0) {
       const scaleW = containerW / frameW;
       const scaleH = containerH / frameH;
@@ -665,14 +665,14 @@ export function SpriteAnalyzer({
           >
               {settings.showGroundLine && (
                 <div 
-                  className="absolute left-[-20%] right-[-20%] h-px bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] z-[45] pointer-events-all"
+                  className="absolute left-0 right-0 h-px bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] z-[45] pointer-events-all"
                   style={{ top: `${settings.groundLineY}%`, height: '2px', cursor: isDraggingGround ? 'grabbing' : 'ns-resize' }}
                   onMouseDown={(e) => { e.stopPropagation(); setIsDraggingGround(true); }}
                 >
-                  <div className="absolute left-2 -top-4 w-8 h-8 rounded-full bg-emerald-500/95 border-2 border-white shadow-[0_0_12px_rgba(16,185,129,0.9)] flex items-center justify-center">
+                  <div className="absolute right-2 -top-4 w-8 h-8 rounded-full bg-emerald-500/95 border-2 border-white shadow-[0_0_12px_rgba(16,185,129,0.9)] flex items-center justify-center">
                     <ArrowUpDown size={12} className="text-white" />
                   </div>
-                  <div className="absolute right-0 -top-6 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded flex items-center gap-2">
+                  <div className="absolute right-12 -top-6 bg-emerald-500 text-[9px] font-bold text-white px-2 py-0.5 rounded flex items-center gap-2">
                     GRONDLIJN
                   </div>
                 </div>
@@ -784,7 +784,7 @@ export function SpriteAnalyzer({
             </div>
 
             {/* Playback Controls Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-800 flex items-center justify-center z-[60]">
+          <div data-analyzer-controls="true" className="absolute bottom-0 left-0 right-0 h-24 bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-800 flex items-center justify-center z-[60]">
             <PlaybackControls 
               isPlaying={isPlaying}
               onTogglePlay={handleTogglePlay}
