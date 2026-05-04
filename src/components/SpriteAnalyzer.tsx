@@ -127,6 +127,7 @@ export function SpriteAnalyzer({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const workAreaRef = useRef<HTMLDivElement>(null);
+  const hasMovedGuideRef = useRef(false);
 
   const playbackFrames = activeFrames;
 
@@ -316,6 +317,16 @@ export function SpriteAnalyzer({
 
   const toggleCrosshairMode = () => {
     const nextMode = settings.guideMode === 'guide' ? 'none' : 'guide';
+
+    if (nextMode === 'guide' && !hasMovedGuideRef.current && settings.guidePosition.x === 50 && settings.guidePosition.y === 50) {
+      onSettingsChange({
+        ...settings,
+        guideMode: nextMode,
+        guidePosition: { x: 0, y: 0 },
+      });
+      return;
+    }
+
     onSettingsChange({ ...settings, guideMode: nextMode });
   };
 
@@ -349,6 +360,7 @@ export function SpriteAnalyzer({
       const relX = ((e.clientX - rect.left) / rect.width) * 100;
       const relY = ((e.clientY - rect.top) / rect.height) * 100;
       
+      hasMovedGuideRef.current = true;
       onSettingsChange({
         ...settings,
         guidePosition: { 
