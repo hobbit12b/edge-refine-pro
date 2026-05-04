@@ -74,4 +74,19 @@ describe('deriveAtlasFrameMetadata', () => {
     expect(out.spriteSourceSize).toEqual({ x: 0, y: 0, w: 100, h: 50 });
     expect(out.trimmed).toBe(false);
   });
+
+  it.each([
+    { x: Number.NaN, y: 0, w: 10, h: 10 },
+    { x: Infinity, y: 0, w: 10, h: 10 },
+    { x: -Infinity, y: 0, w: 10, h: 10 },
+  ])('falls back to full frame for non-finite trimmedBox values: %o', (trimmedBox) => {
+    const out = deriveAtlasFrameMetadata(
+      { ...baseFrame, trimmedBox },
+      { anchor: 'center', customPivot: { x: 0.5, y: 0.5 } }
+    );
+    expect(out.spriteSourceSize).toEqual({ x: 0, y: 0, w: 100, h: 50 });
+    expect(out.frame.w).toBe(100);
+    expect(out.frame.h).toBe(50);
+    expect(out.trimmed).toBe(false);
+  });
 });
