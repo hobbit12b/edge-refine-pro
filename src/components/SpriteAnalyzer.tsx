@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
 import { PlaybackControls } from './PlaybackControls';
-import { getContrastingTextColor } from '@/utils/chapterColors';
+import { darkenHexColor, getContrastingTextColor } from '@/utils/chapterColors';
 
 interface SpriteAnalyzerProps {
   frames: Frame[];
@@ -982,6 +982,10 @@ export function SpriteAnalyzer({
                           const isSelected = selectedIds.has(frame.id);
                           const isPlayingHighlight = isPlaying && safePlaybackLength > 0 && playbackFrames[safePlaybackIndex]?.id === frame.id;
                           const stripColors = getTopStripColors(frame.id, isSelected);
+                          const stripBaseColor = stripColors[0] || '#3f3f46';
+                          const frameBadgeColor = darkenHexColor(stripBaseColor, 0.28);
+                          const frameBadgeTextColor = getContrastingTextColor(frameBadgeColor);
+                          const effectiveSelectionPreviewColor = selectionPreviewColor || '#a855f7';
 
                           return (
                             <div
@@ -1000,8 +1004,8 @@ export function SpriteAnalyzer({
                                     ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                     : isFocused 
                                       ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30' 
-                                      : isSelected && !isAllFramesChecked
-                                        ? 'border-purple-600 bg-purple-600/10 opacity-100' 
+                                      : isSelected
+                                        ? 'bg-purple-600/10 opacity-100' 
                                         : 'border-zinc-700/50 opacity-80 bg-zinc-900/10'}
                                 `}
                                 style={{
@@ -1023,14 +1027,14 @@ export function SpriteAnalyzer({
                                   className={`absolute inset-x-0 top-0 h-3 text-[8px] font-black uppercase text-center transition-colors z-20 ${
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
-                                  style={{ color: isFocused ? '#ffffff' : getContrastingTextColor(stripColors[0] || '#3f3f46') }}
+                                  style={{ color: isFocused ? '#ffffff' : getContrastingTextColor(stripBaseColor) }}
                                 >
                                   <div className="absolute inset-0 flex pointer-events-none">
                                     {stripColors.map((color, idx) => (
                                       <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
                                     ))}
                                   </div>
-                                  <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm bg-black/60 text-white leading-none">
+                                  <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm leading-none" style={{ backgroundColor: frameBadgeColor, color: frameBadgeTextColor }}>
                                     {frame.index + 1}
                                   </span>
                                 </div>
@@ -1049,10 +1053,10 @@ export function SpriteAnalyzer({
                                     {frame.durationMultiplier}x
                                   </div>
                                 )}
-                                {isSelected && selectionPreviewColor && (
+                                {isSelected && (
                                   <div
                                     className="absolute inset-0 rounded-xl pointer-events-none z-20"
-                                    style={{ boxShadow: `0 0 0 2px ${selectionPreviewColor}, 0 0 10px ${selectionPreviewColor}` }}
+                                    style={{ boxShadow: `inset 0 0 0 2px ${effectiveSelectionPreviewColor}, 0 0 10px ${effectiveSelectionPreviewColor}` }}
                                   />
                                 )}
                               </div>
