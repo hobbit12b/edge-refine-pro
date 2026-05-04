@@ -473,9 +473,30 @@ export function SpriteAnalyzer({
 
   const hasSpriteBounds = Boolean(currentPreviewFrame?.trimmedBox);
   const metadataFrame = currentPreviewFrame;
+  const frameChapters = metadataFrame
+    ? chapters.filter((chapter) => chapter.frameIds.includes(metadataFrame.id)).map((chapter) => chapter.name)
+    : [];
+  const expectedAutoOffset = metadataFrame?.trimmedBox
+    ? {
+        x: metadataFrame.originalWidth / 2 - (metadataFrame.trimmedBox.x + metadataFrame.trimmedBox.w / 2),
+        y: metadataFrame.originalHeight / 2 - (metadataFrame.trimmedBox.y + metadataFrame.trimmedBox.h / 2),
+      }
+    : null;
+  const hasNonZeroOffset = Boolean(metadataFrame?.offset && (metadataFrame.offset.x !== 0 || metadataFrame.offset.y !== 0));
+  const isGenuineZeroOffset = Boolean(
+    metadataFrame?.offset
+      && metadataFrame.offset.x === 0
+      && metadataFrame.offset.y === 0
+      && expectedAutoOffset
+      && expectedAutoOffset.x === 0
+      && expectedAutoOffset.y === 0
+  );
+  const hasCalculatedOffset = hasNonZeroOffset || isGenuineZeroOffset;
+
   const metadataRows = [
     { label: 'Frame ID', value: metadataFrame?.id ?? 'not available' },
     { label: 'Frame #', value: metadataFrame ? String(metadataFrame.index + 1) : 'not available' },
+    { label: 'Chapter', value: metadataFrame ? (frameChapters.length > 0 ? frameChapters.join(', ') : 'No chapter') : 'not available' },
     { label: 'Original Size', value: metadataFrame ? `${metadataFrame.originalWidth} × ${metadataFrame.originalHeight}` : 'not available' },
     { label: 'Canvas Size', value: settings?.frameSize ? `${settings.frameSize.width} × ${settings.frameSize.height}` : 'not available' },
     {
@@ -496,7 +517,7 @@ export function SpriteAnalyzer({
     },
     {
       label: 'Offset',
-      value: metadataFrame?.offset ? `x: ${metadataFrame.offset.x}, y: ${metadataFrame.offset.y}` : 'not calculated',
+      value: hasCalculatedOffset && metadataFrame?.offset ? `x: ${metadataFrame.offset.x}, y: ${metadataFrame.offset.y}` : 'not calculated',
     },
     { label: 'sourceSize', value: 'not calculated' },
     { label: 'spriteSourceSize', value: 'not calculated' },
@@ -572,7 +593,7 @@ export function SpriteAnalyzer({
                   className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
                 >
                   <Target size={14} />
-                  <span className="text-[8px] font-black uppercase">Frame</span>
+                  <span className="text-[8px] font-black uppercase">Frame bounds</span>
                 </button>
                 {hasSpriteBounds && (
                   <button
@@ -580,7 +601,7 @@ export function SpriteAnalyzer({
                     className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${showSpriteBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
                   >
                     <Target size={14} />
-                    <span className="text-[8px] font-black uppercase">Sprite</span>
+                    <span className="text-[8px] font-black uppercase">Sprite bounds</span>
                   </button>
                 )}
               </div>
@@ -630,20 +651,6 @@ export function SpriteAnalyzer({
                 </div>
               </div>
 
-              <div className="space-y-2 pt-4 border-t border-zinc-800/50 mt-2">
-                <div className="flex items-center gap-2 px-1">
-                  <HelpCircle size={12} className="text-cyan-400" />
-                  <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Frame Metadata</h4>
-                </div>
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2 space-y-1.5">
-                  {metadataRows.map((row) => (
-                    <div key={row.label} className="flex items-start justify-between gap-2 text-[8px]">
-                      <span className="text-zinc-500 uppercase tracking-widest font-bold">{row.label}</span>
-                      <span className="text-zinc-300 font-mono text-right break-all">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="h-px bg-zinc-900 mb-2" />
@@ -737,6 +744,21 @@ export function SpriteAnalyzer({
             {chapters.length === 0 && (
               <div className="text-[9px] text-zinc-700 italic p-4 text-center">Nog geen hoofdstukken.</div>
             )}
+          </div>
+
+          <div className="p-3 border-t border-zinc-800 bg-zinc-900/20 space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <HelpCircle size={12} className="text-cyan-400" />
+              <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Frame Metadata</h4>
+            </div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-2 space-y-1.5">
+              {metadataRows.map((row) => (
+                <div key={row.label} className="flex items-start justify-between gap-2 text-[8px]">
+                  <span className="text-zinc-500 uppercase tracking-widest font-bold">{row.label}</span>
+                  <span className="text-zinc-300 font-mono text-right break-all">{row.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1037,6 +1059,25 @@ export function SpriteAnalyzer({
             </div>
           </div>
 
+          {/* Zoom Controls */}
+          <div className="p-4 border-t border-zinc-800 bg-zinc-950 space-y-6 flex-shrink-0">
+            <div className="space-y-2">
+              <div className="flex justify-between items-end text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                <span>Thumbnail Grootte</span>
+                <span className="text-zinc-300 font-mono">{settings.frameGridSize}px</span>
+              </div>
+              <input
+                type="range"
+                min="40"
+                max="160"
+                value={settings.frameGridSize}
+                onChange={(e) => onSettingsChange({ ...settings, frameGridSize: parseInt(e.target.value) })}
+                className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+            </div>
+          </div>
+
+
           {/* Frame Timing Controls (Mirrored from RightSidebar) */}
           {(focusedFrameId || selectedIds.size > 0) && (
             <div className="p-4 bg-zinc-900/40 border-t border-zinc-800 space-y-4">
@@ -1078,23 +1119,6 @@ export function SpriteAnalyzer({
             </div>
           )}
 
-          {/* Zoom Controls */}
-          <div className="p-4 border-t border-zinc-800 bg-zinc-950 space-y-6 flex-shrink-0">
-            <div className="space-y-2">
-              <div className="flex justify-between items-end text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                <span>Thumbnail Grootte</span>
-                <span className="text-zinc-300 font-mono">{settings.frameGridSize}px</span>
-              </div>
-              <input
-                type="range"
-                min="40"
-                max="160"
-                value={settings.frameGridSize}
-                onChange={(e) => onSettingsChange({ ...settings, frameGridSize: parseInt(e.target.value) })}
-                className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>
