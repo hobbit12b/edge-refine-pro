@@ -112,13 +112,18 @@ export function SpriteAnalyzer({
   const [isDraggingGround, setIsDraggingGround] = useState(false);
   const [isDraggingFrame, setIsDraggingFrame] = useState(false);
   const [isDraggingPivot, setIsDraggingPivot] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isPanningViewport, setIsPanningViewport] = useState(false);
+  const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
   const [onionSkinDir, setOnionSkinDir] = useState<-1 | 1>(-1);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState('');
   const timerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const workAreaRef = useRef<HTMLDivElement>(null);
 
   const playbackFrames = activeFrames;
 
@@ -230,19 +235,19 @@ export function SpriteAnalyzer({
   const fitToScreen = () => {
     const frameW = settings.frameSize.width * visualScale;
     const frameH = settings.frameSize.height * visualScale;
-    const viewportW = viewportRef.current?.clientWidth || window.innerWidth - 600;
-    const viewportH = viewportRef.current?.clientHeight || window.innerHeight - 260;
-    const controlsH = viewportRef.current?.querySelector('[data-analyzer-controls="true"]')?.clientHeight || 96;
+    const viewportW = workAreaRef.current?.clientWidth || viewportRef.current?.clientWidth || window.innerWidth - 600;
+    const viewportH = workAreaRef.current?.clientHeight || viewportRef.current?.clientHeight || window.innerHeight - 260;
     const horizontalPadding = 64;
     const verticalPadding = 64;
     const containerW = Math.max(100, viewportW - horizontalPadding);
-    const containerH = Math.max(100, viewportH - controlsH - verticalPadding);
+    const containerH = Math.max(100, viewportH - verticalPadding);
 
     if (frameW > 0 && frameH > 0) {
       const scaleW = containerW / frameW;
       const scaleH = containerH / frameH;
       const fitScale = Math.max(10, Math.min(800, Math.floor(Math.min(scaleW, scaleH) * 100)));
       onSettingsChange({ ...settings, analyzerZoom: fitScale });
+      setViewportOffset({ x: 0, y: 0 });
     }
   };
 
@@ -382,6 +387,7 @@ export function SpriteAnalyzer({
     setIsDraggingGround(false);
     setIsDraggingFrame(false);
     setIsDraggingPivot(false);
+    setIsPanningViewport(false);
   };
 
   useEffect(() => {
@@ -398,6 +404,9 @@ export function SpriteAnalyzer({
       };
 
       switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          break;
         case 'ArrowLeft': {
           e.preventDefault();
           setIsPlaying(false);
@@ -418,16 +427,35 @@ export function SpriteAnalyzer({
           e.preventDefault();
           move(0, delta);
           break;
-        case ' ': // Toggle play with space
-          e.preventDefault();
-          handleTogglePlay();
-          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, focusedFrameId, isPlaying, handleTogglePlay, onUpdateFramesOffset, navigateFrame]);
+  }, [selectedIds, focusedFrameId, onUpdateFramesOffset, navigateFrame]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsSpacePressed(false);
+        setIsPanningViewport(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+    };
+  }, []);
 
   const safePlaybackLength = playbackFrames.length;
   const safePlaybackIndex = safePlaybackLength > 0
@@ -649,15 +677,33 @@ export function SpriteAnalyzer({
         <div 
           ref={viewportRef}
           className="flex-1 relative overflow-hidden bg-[#050505] checkerboard-dark flex items-center justify-center p-4 md:p-8"
-          onMouseMove={handleMouseMove}
+          onMouseMove={(e) => {
+            if (isPanningViewport) {
+              const dx = e.clientX - panStart.x;
+              const dy = e.clientY - panStart.y;
+              setViewportOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+              setPanStart({ x: e.clientX, y: e.clientY });
+              return;
+            }
+            handleMouseMove(e);
+          }}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onMouseDown={(e) => {
+            if (isSpacePressed) {
+              e.preventDefault();
+              setIsPanningViewport(true);
+              setPanStart({ x: e.clientX, y: e.clientY });
+            }
+          }}
+          style={{ cursor: isSpacePressed ? (isPanningViewport ? 'grabbing' : 'grab') : undefined }}
         >
+          <div ref={workAreaRef} className="absolute inset-x-0 top-0 bottom-24 pointer-events-none" />
           <div 
             ref={containerRef}
             className="relative transition-transform duration-200 shadow-2xl flex-shrink-0"
             style={{ 
-              transform: `scale(${settings.analyzerZoom / 100})`,
+              transform: `translate(${viewportOffset.x}px, ${viewportOffset.y}px) scale(${settings.analyzerZoom / 100})`,
               width: settings.frameSize.width * visualScale,
               height: settings.frameSize.height * visualScale,
               transformOrigin: 'center center'
