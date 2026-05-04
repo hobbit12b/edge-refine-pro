@@ -32,6 +32,7 @@ export interface Frame {
   index: number;
   originalWidth: number;
   originalHeight: number;
+  aiBgRemoved?: boolean;
   trimmedBox?: { x: number; y: number; w: number; h: number };
   durationMultiplier: number;
   offset: { x: number; y: number }; // Individual frame offset for fine-tuning
