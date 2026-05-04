@@ -201,7 +201,8 @@ export function MainPreview({
   }
 
   const focusedFrame = frames.find(f => f.id === focusedFrameId);
-  const currentFrame = focusedFrame ?? activeFrames[currentIndex % activeFrames.length];
+  const playbackFrame = activeFrames[currentIndex % activeFrames.length];
+  const currentFrame = isPlaying ? playbackFrame : (focusedFrame ?? playbackFrame);
 
   const handleTogglePlay = () => {
     onTogglePlay();
