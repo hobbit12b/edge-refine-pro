@@ -30,7 +30,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getContrastingTextColor } from '@/utils/chapterColors';
+import { darkenHexColor, getContrastingTextColor } from '@/utils/chapterColors';
 
 interface RightSidebarProps {
   frames: Frame[];
@@ -112,6 +112,10 @@ function SortableFrameItem({
   const oldIndex = activeId ? frames.findIndex(f => f.id === activeId) : -1;
   const newIndex = frames.findIndex(f => f.id === frame.id);
   const isForward = oldIndex !== -1 && newIndex > oldIndex;
+  const stripBaseColor = stripColors[0] || '#3f3f46';
+  const frameBadgeColor = darkenHexColor(stripBaseColor, 0.28);
+  const frameBadgeTextColor = getContrastingTextColor(frameBadgeColor);
+  const effectiveSelectionPreviewColor = selectionPreviewColor || '#a855f7';
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -143,8 +147,8 @@ function SortableFrameItem({
             ? 'border-white z-30 scale-105 opacity-100 ring-4 ring-white/50 bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
               : isFocused 
               ? 'border-white z-40 scale-110 opacity-100 ring-2 ring-white/30 bg-purple-900/10' 
-              : isSelected && !isAllFramesMode
-                ? 'border-purple-600 bg-purple-600/10 opacity-100'
+              : isSelected
+                ? 'bg-purple-600/10 opacity-100'
                 : checkedChapterColor
                   ? 'opacity-90 bg-zinc-900/10'
                   : 'border-zinc-800 opacity-40 hover:opacity-100 hover:border-zinc-700 bg-zinc-900/10'}
@@ -183,7 +187,7 @@ function SortableFrameItem({
         <div
           className="absolute inset-x-0 top-0 h-3 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer overflow-hidden"
           style={{
-            color: getContrastingTextColor(stripColors[0] || '#3f3f46'),
+            color: getContrastingTextColor(stripBaseColor),
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -201,7 +205,7 @@ function SortableFrameItem({
               <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
             ))}
           </div>
-          <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm bg-black/60 text-white leading-none">
+          <span className="relative z-10 inline-flex mt-[1px] px-1 rounded-sm leading-none" style={{ backgroundColor: frameBadgeColor, color: frameBadgeTextColor }}>
             {frame.index + 1}
           </span>
         </div>
@@ -239,10 +243,10 @@ function SortableFrameItem({
             {frame.durationMultiplier}x
           </div>
         )}
-        {isSelected && selectionPreviewColor && (
+        {isSelected && (
           <div
             className="absolute inset-0 rounded-xl pointer-events-none z-20"
-            style={{ boxShadow: `0 0 0 2px ${selectionPreviewColor}, 0 0 10px ${selectionPreviewColor}` }}
+            style={{ boxShadow: `inset 0 0 0 2px ${effectiveSelectionPreviewColor}, 0 0 10px ${effectiveSelectionPreviewColor}` }}
           />
         )}
       </div>
