@@ -228,14 +228,16 @@ const orderedCheckedFrames = useMemo(() => {
 const activeFrames = useMemo(() => {
   if (isAllFramesChecked) return frames;
 
-  if (orderedCheckedFrames.length > 0) {
-    return orderedCheckedFrames;
-  }
+  return orderedCheckedFrames;
+}, [frames, isAllFramesChecked, orderedCheckedFrames]);
 
-  return selectedIds.size > 0
-    ? frames.filter(f => selectedIds.has(f.id))
-    : frames;
-}, [frames, selectedIds, isAllFramesChecked, orderedCheckedFrames]);
+useEffect(() => {
+  if (!focusedFrameId || activeFrames.length === 0) return;
+  const isFocusedInScope = activeFrames.some((frame) => frame.id === focusedFrameId);
+  if (!isFocusedInScope) {
+    setFocusedFrameId(activeFrames[0].id);
+  }
+}, [activeFrames, focusedFrameId, setFocusedFrameId]);
 
   const selectionPreviewColor = useMemo(() => {
     if (selectionSource !== 'manual' || selectedIds.size < 1) return null;

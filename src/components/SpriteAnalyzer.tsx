@@ -119,9 +119,7 @@ export function SpriteAnalyzer({
   const timerRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const playbackFrames = useMemo(() => {
-    return activeFrames.length > 0 ? activeFrames : frames;
-  }, [activeFrames, frames]);
+  const playbackFrames = activeFrames;
 
   const focusedFrame = playbackFrames.find(f => f.id === focusedFrameId) || playbackFrames[0] || null;
   const focusedIndex = focusedFrame ? playbackFrames.findIndex(f => f.id === focusedFrame.id) : -1;
