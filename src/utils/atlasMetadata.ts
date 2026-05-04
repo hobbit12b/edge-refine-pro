@@ -18,6 +18,7 @@ export interface AtlasFrameMetadata {
 
 function isValidTrimmedBox(trimmedBox: Frame['trimmedBox'], sourceSize: { w: number; h: number }) {
   if (!trimmedBox) return false;
+  if (!Number.isFinite(trimmedBox.x) || !Number.isFinite(trimmedBox.y) || !Number.isFinite(trimmedBox.w) || !Number.isFinite(trimmedBox.h)) return false;
   if (trimmedBox.w <= 0 || trimmedBox.h <= 0) return false;
   if (trimmedBox.x < 0 || trimmedBox.y < 0) return false;
   if (trimmedBox.x + trimmedBox.w > sourceSize.w) return false;
