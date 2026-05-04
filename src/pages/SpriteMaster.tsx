@@ -232,7 +232,13 @@ const activeFrames = useMemo(() => {
 }, [frames, isAllFramesChecked, orderedCheckedFrames]);
 
 useEffect(() => {
-  if (!focusedFrameId || activeFrames.length === 0) return;
+  if (activeFrames.length === 0) return;
+
+  if (!focusedFrameId) {
+    setFocusedFrameId(activeFrames[0].id);
+    return;
+  }
+
   const isFocusedInScope = activeFrames.some((frame) => frame.id === focusedFrameId);
   if (!isFocusedInScope) {
     setFocusedFrameId(activeFrames[0].id);
