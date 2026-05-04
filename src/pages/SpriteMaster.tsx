@@ -20,6 +20,8 @@ import { serializeProject, deserializeProject } from '@/services/projectService'
 import { toast } from '@/components/ui/use-toast';
 import { cleanupChapters } from '@/utils/cleanupChapters';
 import { getNextChapterColor } from '@/utils/chapterColors';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function SpriteMaster() {
   const { trackUrl, createTrackedUrl, revokeUnused, revokeAll } = useObjectUrlRegistry();
@@ -34,6 +36,7 @@ export default function SpriteMaster() {
   const [isDetectingDuplicates, setIsDetectingDuplicates] = useState(false);
   const [removalState, setRemovalState] = useState({ active: false, current: 0, total: 0, progress: 0 });
   const [isAppending, setIsAppending] = useState(false);
+  const [isBgScopeDialogOpen, setIsBgScopeDialogOpen] = useState(false);
   const [visualScale, setVisualScale] = useState(1.0);
   const [hasProject, setHasProject] = useState(false);
   const [activeBindingId, setActiveBindingId] = useState<string>('default');
@@ -985,18 +988,40 @@ const handleAllFramesToggle = useCallback(() => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, focusedFrameId, selectedIds, activeView, updateFramesOffset, selectAllWithHistory, deselectAllWithHistory, deleteSelected, isPickingColor, settings.interactionMode, activeFrames, editorCurrentIndex, prePlaybackFocusedFrameId]);
 
-  const handleRemoveBackground = async () => {
-    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
+  const getCurrentChapterScope = useCallback(() => {
+    if (!focusedFrameId) return null;
+    const chapter = chapters.find(ch => ch.frameIds.includes(focusedFrameId));
+    if (!chapter) return null;
+    return {
+      chapterId: chapter.id,
+      chapterName: chapter.name,
+      frameIds: chapter.frameIds.filter((frameId) => frames.some((frame) => frame.id === frameId)),
+    };
+  }, [chapters, focusedFrameId, frames]);
+
+  const getCheckedChapterScopeIds = useCallback(() => {
+    const frameById = new Map(frames.map(frame => [frame.id, frame]));
+    const seen = new Set<string>();
+    const orderedUniqueIds: string[] = [];
+
+    chapters
+      .filter(ch => checkedChapterIds.has(ch.id))
+      .forEach(ch => {
+        ch.frameIds.forEach((frameId) => {
+          if (seen.has(frameId) || !frameById.has(frameId)) return;
+          seen.add(frameId);
+          orderedUniqueIds.push(frameId);
+        });
+      });
+
+    return orderedUniqueIds;
+  }, [chapters, checkedChapterIds, frames]);
+
+  const processBackgroundRemoval = async (targetIds: string[]) => {
     if (targetIds.length === 0) return;
 
     pushToHistory();
-    // Initialize removal state clearly
-    setRemovalState({ 
-      active: true, 
-      current: 0, 
-      total: targetIds.length, 
-      progress: 0 
-    });
+    setRemovalState({ active: true, current: 0, total: targetIds.length, progress: 0 });
 
     try {
       const newFrames = [...frames];
@@ -1008,9 +1033,6 @@ const handleAllFramesToggle = useCallback(() => {
 
         const frame = newFrames[frameIdx];
         if (!frame.blob) continue;
-        
-        // --- Process Frame ---
-        // UI yielding to prevent freezes - wait for next tick
         await new Promise(r => setTimeout(r, 150));
 
         const originalImg = new Image();
@@ -1021,13 +1043,8 @@ const handleAllFramesToggle = useCallback(() => {
           originalImg.src = originalUrl;
         });
 
-        // Small yield after image load
         await new Promise(r => setTimeout(r, 0));
-
-        // Background removal (heavy call)
         const removedBgBlob = await removeBackground(frame);
-
-        // Yield after heavy work - allow UI to breathe
         await new Promise(r => setTimeout(r, 200));
         
         if (!removedBgBlob) {
@@ -1084,31 +1101,44 @@ const handleAllFramesToggle = useCallback(() => {
           }
         }
         
-        setRemovalState(prev => {
-          // Discrete progress jump per frame completion
-          const nextCompletedCount = i + 1;
-          const totalFrames = targetIds.length;
-          const nextProgress = nextCompletedCount / totalFrames;
-          
-          return {
-            ...prev,
-            current: nextCompletedCount,
-            progress: nextProgress
-          };
-        });
+        setRemovalState(prev => ({
+          ...prev,
+          current: i + 1,
+          progress: (i + 1) / targetIds.length
+        }));
         
         setFrames([...newFrames]);
-        // Yield to browser to keep UI alive and show progress
         await new Promise(r => setTimeout(r, 50));
       }
     } catch (error) {
       console.error('Background removal failed:', error);
     } finally {
-      // Keep result visible for a bit before clearing UI
       await new Promise(r => setTimeout(r, 1000));
       setRemovalState(prev => ({ ...prev, active: false }));
     }
   };
+
+  const handleRemoveBackground = () => {
+    setIsBgScopeDialogOpen(true);
+  };
+
+  const handleRemoveBackgroundWithScope = async (scope: 'current-frame' | 'current-chapter' | 'checked-chapters' | 'all-frames') => {
+    let targetIds: string[] = [];
+
+    if (scope === 'current-frame') {
+      targetIds = focusedFrameId ? [focusedFrameId] : [];
+    } else if (scope === 'current-chapter') {
+      targetIds = getCurrentChapterScope()?.frameIds ?? [];
+    } else if (scope === 'checked-chapters') {
+      targetIds = getCheckedChapterScopeIds();
+    } else if (scope === 'all-frames') {
+      targetIds = frames.map(frame => frame.id);
+    }
+
+    setIsBgScopeDialogOpen(false);
+    await processBackgroundRemoval(targetIds);
+  };
+
 
   // (isPickingColor / edgeBusy declared above near keyboard handler)
 
@@ -1609,6 +1639,40 @@ const handleAllFramesToggle = useCallback(() => {
         )}
       </AnimatePresence>
       
+      <Dialog open={isBgScopeDialogOpen} onOpenChange={setIsBgScopeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>AI BG Remover scope</DialogTitle>
+            <DialogDescription>Kies welke frames je wilt verwerken.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            {focusedFrameId && (
+              <Button variant="outline" onClick={() => void handleRemoveBackgroundWithScope('current-frame')}>
+                Current frame
+              </Button>
+            )}
+            {getCurrentChapterScope() && (
+              <Button variant="outline" onClick={() => void handleRemoveBackgroundWithScope('current-chapter')}>
+                Current chapter ({getCurrentChapterScope()?.chapterName || getCurrentChapterScope()?.chapterId})
+              </Button>
+            )}
+            {checkedChapterIds.size > 0 && getCheckedChapterScopeIds().length > 0 && (
+              <Button variant="outline" onClick={() => void handleRemoveBackgroundWithScope('checked-chapters')}>
+                All checked chapters
+              </Button>
+            )}
+            {frames.length > 0 && (
+              <Button onClick={() => void handleRemoveBackgroundWithScope('all-frames')}>
+                All frames
+              </Button>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsBgScopeDialogOpen(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Export Modal Overlay - Removed and moved to main view flow */}
 
     </div>
