@@ -152,8 +152,9 @@ function SortableFrameItem({
         }}
         onClick={(e) => {
           e.stopPropagation();
+          const isModifiedSelection = e.shiftKey || e.ctrlKey || e.metaKey;
           onFocus();
-          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          if (isModifiedSelection) {
             onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
             return;
           }
@@ -176,8 +177,9 @@ function SortableFrameItem({
           }}
           onClick={(e) => {
             e.stopPropagation();
+            const isModifiedSelection = e.shiftKey || e.ctrlKey || e.metaKey;
             onFocus();
-            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            if (isModifiedSelection) {
               onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
               return;
             }
@@ -190,8 +192,9 @@ function SortableFrameItem({
           className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50"
           onClick={(e) => {
             e.stopPropagation();
+            const isModifiedSelection = e.shiftKey || e.ctrlKey || e.metaKey;
             onFocus();
-            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            if (isModifiedSelection) {
               onToggle(e.shiftKey, e.ctrlKey || e.metaKey);
               return;
             }
@@ -419,9 +422,9 @@ export function RightSidebar({
                       isPlayingHighlight={isPlaying && playbackFrameId === frame.id}
                       onFocus={() => {
                         onFocusFrame(frame.id);
-                        onSetSelectionAnchor(frame.id);
                       }}
                       onNormalClick={() => {
+                        onSetSelectionAnchor(frame.id);
                         onToggleSelect(frame.id, false, false);
                       }}
                       onToggle={(shift, ctrl) => onToggleSelect(frame.id, shift, ctrl)}

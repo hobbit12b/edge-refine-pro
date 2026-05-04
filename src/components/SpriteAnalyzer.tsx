@@ -857,9 +857,12 @@ export function SpriteAnalyzer({
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  const isModifiedSelection = e.shiftKey || e.metaKey || e.ctrlKey;
                                   setIsPlaying(false);
                                   onFocusFrame(frame.id);
-                                  onSetSelectionAnchor(frame.id);
+                                  if (!isModifiedSelection) {
+                                    onSetSelectionAnchor(frame.id);
+                                  }
                                   onToggleSelect(frame.id, e.shiftKey, e.metaKey || e.ctrlKey);
                                 }}
                               >
