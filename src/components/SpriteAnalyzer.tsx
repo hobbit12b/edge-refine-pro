@@ -457,7 +457,7 @@ export function SpriteAnalyzer({
                   className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl border transition-all ${settings.showOnionSkin ? 'bg-blue-600/10 border-blue-500/50 text-blue-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-700'}`}
                 >
                   <Layers size={14} />
-                  <span className="text-[8px] font-black uppercase">Onion</span>
+                  <span className="text-[8px] font-black uppercase">Onion skin</span>
                 </button>
                 <button 
                   onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })}
@@ -716,7 +716,7 @@ export function SpriteAnalyzer({
                 {settings.showOnionSkin && onionSkinFrame?.url && !isPlaying && (
                   <img
                     src={onionSkinFrame.url}
-                    alt="Onion Skin"
+                    alt="Onion skin"
                     className="absolute left-1/2 top-1/2 select-none pointer-events-none grayscale sepia opacity-50 max-w-none max-h-none"
                     style={{
                       width: `${onionSkinFrame.originalWidth * visualScale}px`,
@@ -799,8 +799,11 @@ export function SpriteAnalyzer({
         {/* Sidebar */}
         <div className="w-80 bg-zinc-950 border-l border-zinc-800 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/20 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              <span>Spritesheet Grid ({selectedIds.size}/{frames.length})</span>
+            <div className="p-4 border-b border-zinc-800 bg-zinc-900/20 text-[10px] font-bold text-zinc-500 uppercase tracking-widest space-y-2">
+              <div className="flex items-center justify-between">
+                <span>Atlas frame grid ({selectedIds.size}/{frames.length})</span>
+              </div>
+              <p className="text-[9px] normal-case tracking-normal text-zinc-400 font-medium">Visual alignment debug: ground line, pivot point, bounding boxes, trimmed bounds en onion skin.</p>
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
