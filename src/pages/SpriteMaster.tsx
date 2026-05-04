@@ -87,7 +87,7 @@ export default function SpriteMaster() {
     checkerboardMode: 'transparent',
     
     // Packing & Optimization Defaults
-    packingMethod: 'bin',
+    packingMethod: 'grid',
     maxWidth: 2048,
     maxHeight: 2048,
     allowRotation: false,
@@ -860,9 +860,9 @@ const activeFrames = useMemo(() => {
 
   const steps = [
     { id: 'editor', label: 'Frames voorbereiden', icon: Repeat },
-    { id: 'analyzer', label: 'Analyze & Align (debug)', icon: Target },
+    { id: 'analyzer', label: 'Analyze & Align', icon: Target },
     { id: 'test', label: 'Test', icon: Gamepad2 },
-    { id: 'export', label: 'Export Atlas', icon: Download },
+    { id: 'export', label: 'Export Spritesheet', icon: Download },
   ];
 
   const handleStepClick = (stepId: string) => {

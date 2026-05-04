@@ -261,7 +261,7 @@ export function ExportPanel({ frames, settings, chapters, onSettingsChange, onBa
         </div>
         <div className="space-y-1">
           <h2 className="text-3xl font-black tracking-tight text-white uppercase">Export Center</h2>
-          <p className="text-zinc-500 text-sm font-medium">Configureer en download je texture atlas met trim, variabele framegroottes en JSON-metadata.</p>
+          <p className="text-zinc-500 text-sm font-medium">Configureer en download je spritesheets voor gebruik in games.</p>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export function ExportPanel({ frames, settings, chapters, onSettingsChange, onBa
                 )}
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Methode</span>
-                  <span className="text-zinc-300 font-mono capitalize">{settings.packingMethod === 'bin' ? 'Atlas packing' : 'Fixed grid (legacy)'}</span>
+                  <span className="text-zinc-300 font-mono capitalize">{settings.packingMethod === 'bin' ? 'Smart (Bin)' : 'Grid (Raster)'}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">POT Status</span>
@@ -355,7 +355,7 @@ export function ExportPanel({ frames, settings, chapters, onSettingsChange, onBa
                 className="w-full py-6 bg-orange-600 hover:bg-orange-500 disabled:bg-orange-900 text-white rounded-2xl font-black uppercase tracking-tight flex items-center justify-center gap-4 shadow-2xl shadow-orange-600/30 transition-all active:scale-[0.98] text-lg"
               >
                 {isExporting ? <Loader2 className="animate-spin" size={24} /> : <Archive size={24} />}
-                Download Atlas Multipack (ZIP)
+                Download Multipack (ZIP)
               </button>
             ) : (
               <button
@@ -364,7 +364,7 @@ export function ExportPanel({ frames, settings, chapters, onSettingsChange, onBa
                 className="w-full py-6 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 text-white rounded-2xl font-black uppercase tracking-tight flex items-center justify-center gap-4 shadow-2xl shadow-purple-600/30 transition-all active:scale-[0.98] text-lg"
               >
                 {isExporting ? <Loader2 className="animate-spin" size={24} /> : <Download size={24} />}
-                Download Atlas (PNG)
+                Download Spritesheet (PNG)
               </button>
             )}
             
@@ -396,7 +396,7 @@ export function ExportPanel({ frames, settings, chapters, onSettingsChange, onBa
                <div className="space-y-1">
                  <h4 className="text-xs font-bold text-white uppercase tracking-tight">Klaar voor gebruik?</h4>
                  <p className="text-[10px] text-zinc-400 leading-relaxed">
-                   Vergeet niet je frames te analyseren en uit te lijnen in de <span className="text-purple-400 font-bold italic">Analyze & Align (debug visual alignment)</span> tab voordat je exporteert.
+                   Vergeet niet je frames te analyseren en uit te lijnen in de <span className="text-purple-400 font-bold italic">Analyze & Align</span> tab voordat je exporteert.
                  </p>
                </div>
              </div>
