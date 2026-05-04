@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
 import { PlaybackControls } from './PlaybackControls';
+import { getContrastingTextColor } from '@/utils/chapterColors';
 
 interface SpriteAnalyzerProps {
   frames: Frame[];
@@ -145,6 +146,19 @@ export function SpriteAnalyzer({
     return map;
   }, [chapters]);
 
+  const chapterColorsByFrameId = useMemo(() => {
+    const map = new Map<string, string[]>();
+    chapters.forEach((chapter) => {
+      if (!chapter.color) return;
+      chapter.frameIds.forEach((frameId) => {
+        const colors = map.get(frameId) || [];
+        colors.push(chapter.color!);
+        map.set(frameId, colors);
+      });
+    });
+    return map;
+  }, [chapters]);
+
   const chapterGridSections = useMemo(() => {
     if (isAllFramesChecked) {
       return [{ chapter: null, frames: playbackFrames }];
@@ -188,6 +202,12 @@ export function SpriteAnalyzer({
     }
     if (isSelected && !isAllFramesChecked) return '#7c3aed';
     return '#3f3f46';
+  };
+
+  const getTopStripColors = (frameId: string, isSelected: boolean) => {
+    const chapterColors = chapterColorsByFrameId.get(frameId);
+    if (chapterColors && chapterColors.length > 0) return chapterColors;
+    return [getTopStripColor(frameId, isSelected)];
   };
 
   const toggleChapter = (chapterId: string) => {
@@ -960,7 +980,7 @@ export function SpriteAnalyzer({
                           const isFocused = focusedFrameId === frame.id;
                           const isSelected = selectedIds.has(frame.id);
                           const isPlayingHighlight = isPlaying && safePlaybackLength > 0 && playbackFrames[safePlaybackIndex]?.id === frame.id;
-                          const stripColor = getTopStripColor(frame.id, isSelected);
+                          const stripColors = getTopStripColors(frame.id, isSelected);
 
                           return (
                             <div
@@ -1002,10 +1022,13 @@ export function SpriteAnalyzer({
                                   className={`absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 ${
                                     isFocused ? 'text-white' : 'text-zinc-400 group-hover:text-white'
                                   }`}
-                                  style={{ 
-                                    backgroundColor: stripColor
-                                  }}
+                                  style={{ color: isFocused ? '#ffffff' : getContrastingTextColor(stripColors[0] || '#3f3f46') }}
                                 >
+                                  <div className="absolute inset-0 flex pointer-events-none">
+                                    {stripColors.map((color, idx) => (
+                                      <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
+                                    ))}
+                                  </div>
                                   {frame.index + 1}
                                 </div>
                                 <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/50">

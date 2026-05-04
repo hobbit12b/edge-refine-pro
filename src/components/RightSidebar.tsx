@@ -75,7 +75,8 @@ interface SortableFrameItemProps {
   frames: Frame[];
   chapterColor?: string;
   checkedChapterColor?: string;
-  stripColor: string;
+  stripColors: string[];
+  selectionPreviewColor?: string | null;
   isAllFramesMode: boolean;
 }
 
@@ -93,7 +94,8 @@ function SortableFrameItem({
   frames,
   chapterColor,
   checkedChapterColor,
-  stripColor,
+  stripColors,
+  selectionPreviewColor,
   isAllFramesMode,
 }: SortableFrameItemProps) {
   const {
@@ -178,11 +180,11 @@ function SortableFrameItem({
              style={{ backgroundColor: chapterColor }}
            />
         )}
-        <div 
-          className="absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer"
-          style={{ 
-            backgroundColor: stripColor,
-            color: getContrastingTextColor(stripColor),
+        <div
+          className="absolute inset-x-0 top-0 py-0.5 text-[8px] font-black uppercase text-center transition-colors z-20 cursor-pointer overflow-hidden"
+          style={{
+            color: getContrastingTextColor(stripColors[0] || '#3f3f46'),
+            boxShadow: selectionPreviewColor ? `inset 0 0 0 1px ${selectionPreviewColor}` : undefined,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -195,6 +197,11 @@ function SortableFrameItem({
             onNormalClick();
           }}
         >
+          <div className="absolute inset-0 flex pointer-events-none">
+            {stripColors.map((color, idx) => (
+              <div key={`${frame.id}-strip-${idx}`} className="h-full" style={{ width: `${100 / stripColors.length}%`, backgroundColor: color }} />
+            ))}
+          </div>
           {frame.index + 1}
         </div>
         <div 
@@ -414,13 +421,11 @@ export function RightSidebar({
                   const chapter = chapters.find(c => c.frameIds.includes(frame.id));
                   const checkedChapter = chapters.find(c => checkedChapterIds.has(c.id) && c.frameIds.includes(frame.id));
                   const isSelected = selectedIds.has(frame.id);
-                  const stripColor = (isSelected && selectionPreviewColor)
-                    ? selectionPreviewColor
-                    : chapter?.color
-                      ? chapter.color
-                      : isAllFramesMode
-                        ? '#3f3f46'
-                        : 'rgba(0,0,0,0.6)';
+                  const chapterStripColors = chapters
+                    .filter((c) => c.frameIds.includes(frame.id) && Boolean(c.color))
+                    .map((c) => c.color as string);
+                  const fallbackStripColor = isAllFramesMode ? '#3f3f46' : 'rgba(0,0,0,0.6)';
+                  const stripColors = chapterStripColors.length > 0 ? chapterStripColors : [fallbackStripColor];
                   return (
                     <SortableFrameItem 
                       key={frame.id}
@@ -442,7 +447,8 @@ export function RightSidebar({
                       frames={frames}
                       chapterColor={chapter?.color}
                       checkedChapterColor={checkedChapter?.color}
-                      stripColor={stripColor}
+                      stripColors={stripColors}
+                      selectionPreviewColor={isSelected ? selectionPreviewColor : null}
                       isAllFramesMode={isAllFramesMode}
                     />
                   );
