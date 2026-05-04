@@ -233,18 +233,18 @@ const activeFrames = useMemo(() => {
 }, [frames, isAllFramesChecked, orderedCheckedFrames]);
 
 useEffect(() => {
-  if (activeFrames.length === 0) return;
+  if (frames.length === 0) return;
 
   if (!focusedFrameId) {
-    setFocusedFrameId(activeFrames[0].id);
+    setFocusedFrameId(activeFrames[0]?.id ?? frames[0].id);
     return;
   }
 
-  const isFocusedInScope = activeFrames.some((frame) => frame.id === focusedFrameId);
-  if (!isFocusedInScope) {
-    setFocusedFrameId(activeFrames[0].id);
+  const focusedFrameStillExists = frames.some((frame) => frame.id === focusedFrameId);
+  if (!focusedFrameStillExists) {
+    setFocusedFrameId(activeFrames[0]?.id ?? frames[0].id);
   }
-}, [activeFrames, focusedFrameId, setFocusedFrameId]);
+}, [activeFrames, frames, focusedFrameId, setFocusedFrameId]);
 
 
 const handleAllFramesToggle = useCallback(() => {
