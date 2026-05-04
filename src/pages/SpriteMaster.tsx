@@ -74,7 +74,7 @@ export default function SpriteMaster() {
     showGrid: true,
     analyzerZoom: 100,
     guideMode: 'none',
-    guidePosition: { x: 50, y: 50 },
+    guidePosition: { x: 0, y: 0 },
     showGroundLine: false,
     groundLineY: 80,
     showOnionSkin: false,
