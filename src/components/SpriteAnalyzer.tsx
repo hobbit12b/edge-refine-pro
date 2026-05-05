@@ -886,18 +886,18 @@ export function SpriteAnalyzer({
                     />
                   )}
 
-                  {showFrameBounds && (
+                  {showFrameBounds && currentPreviewFrame && (
                     <div 
-                      className="absolute border-2 border-red-500/60 pointer-events-none z-50"
+                      className="absolute border border-rose-400/70 border-dashed pointer-events-none z-50"
                       style={{
-                        left: '50%',
-                        top: '50%',
+                        left: `calc(50% + ${(currentPreviewFrame.offset?.x || 0) * visualScale}px)`,
+                        top: `calc(50% + ${(currentPreviewFrame.offset?.y || 0) * visualScale}px)`,
                         transform: 'translate(-50%, -50%)',
-                        width: `${settings.frameSize.width * visualScale}px`,
-                        height: `${settings.frameSize.height * visualScale}px`,
+                        width: `${currentPreviewFrame.originalWidth * visualScale}px`,
+                        height: `${currentPreviewFrame.originalHeight * visualScale}px`,
                       }}
                     >
-                      <div className="absolute -top-6 left-0 bg-red-500/80 text-[10px] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                      <div className="absolute -top-5 left-0 bg-rose-500/70 text-[9px] text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
                         Frame bounds
                       </div>
                     </div>
