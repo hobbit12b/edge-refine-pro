@@ -120,7 +120,7 @@ export function SpriteAnalyzer({
   const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
   const [onionSkinDir, setOnionSkinDir] = useState<-1 | 1>(-1);
   const [showFrameBounds, setShowFrameBounds] = useState(true);
-  const [showSpriteBounds, setShowSpriteBounds] = useState(false);
+  const [showTrimmedBounds, setShowTrimmedBounds] = useState(false);
   const [showMetadataPanel, setShowMetadataPanel] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -505,7 +505,7 @@ export function SpriteAnalyzer({
     ? playbackFrames[safePlaybackIndex]
     : focusedFrame;
 
-  const hasSpriteBounds = Boolean(currentPreviewFrame?.trimmedBox);
+  const hasTrimmedBounds = Boolean(currentPreviewFrame?.trimmedBox);
   const metadataFrame = currentPreviewFrame;
   const frameChapters = metadataFrame
     ? chapters.filter((chapter) => chapter.frameIds.includes(metadataFrame.id)).map((chapter) => chapter.name)
@@ -783,7 +783,7 @@ export function SpriteAnalyzer({
             </div>
             <button onClick={() => onSettingsChange({ ...settings, showGroundLine: !settings.showGroundLine })} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${settings.showGroundLine ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><ArrowUpDown size={12} />Ground</button>
             <button onClick={() => setShowFrameBounds((prev) => !prev)} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${showFrameBounds ? 'bg-rose-600/10 border-rose-500/50 text-rose-400' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Target size={12} />Frame bounds</button>
-            {hasSpriteBounds && <button onClick={() => setShowSpriteBounds((prev) => !prev)} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${showSpriteBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Target size={12} />Sprite bounds</button>}
+            {hasTrimmedBounds && <button onClick={() => setShowTrimmedBounds((prev) => !prev)} className={`px-2 py-1 rounded-md text-[10px] font-bold border flex items-center gap-1 ${showTrimmedBounds ? 'bg-amber-600/10 border-amber-500/50 text-amber-300' : 'bg-zinc-900 border-zinc-800 text-zinc-500'}`}><Target size={12} />Trimmed bounds</button>}
           </div>
           <div ref={workAreaRef} className="absolute inset-x-0 top-0 bottom-24 pointer-events-none" />
           <div 
@@ -900,7 +900,7 @@ export function SpriteAnalyzer({
                     </div>
                   )}
 
-                  {showSpriteBounds && currentPreviewFrame?.trimmedBox && (
+                  {showTrimmedBounds && currentPreviewFrame?.trimmedBox && (
                     <div
                       className="absolute border border-amber-300 pointer-events-none z-[55]"
                       style={{
@@ -911,7 +911,7 @@ export function SpriteAnalyzer({
                       }}
                     >
                       <div className="absolute -top-5 left-0 bg-amber-400/90 text-[9px] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
-                        Sprite bounds
+                        Trimmed bounds
                       </div>
                     </div>
                   )}
