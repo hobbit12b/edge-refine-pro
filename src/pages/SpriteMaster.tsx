@@ -824,8 +824,12 @@ const handleAllFramesToggle = useCallback(() => {
     }));
   }, [pushToHistory]);
 
-  const updateFramesOffset = useCallback((ids: string[], x: number, y: number) => {
+  const beginOffsetDragUndoStep = useCallback(() => {
     pushToHistory();
+  }, [pushToHistory]);
+
+  const updateFramesOffset = useCallback((ids: string[], x: number, y: number, options?: { skipHistory?: boolean }) => {
+    if (!options?.skipHistory) pushToHistory();
     const idSet = new Set(ids);
     setFrames(prev => prev.map(f => {
       if (idSet.has(f.id)) {
@@ -1476,6 +1480,7 @@ const handleAllFramesToggle = useCallback(() => {
               onScaleSelection={onScaleSelection}
               allFramesCount={frames.length}
               onUpdateFramesOffset={updateFramesOffset}
+              onBeginOffsetDragUndoStep={beginOffsetDragUndoStep}
               activeView={activeView}
               onViewChange={setActiveView}
               onShowExport={() => setActiveView('export')}

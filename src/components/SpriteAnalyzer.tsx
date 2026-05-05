@@ -50,7 +50,8 @@ interface SpriteAnalyzerProps {
   onUpdateDuration: (id: string, delta: number) => void;
   onReorderFrames: (startIndex: number, endIndex: number) => void;
   onFocusFrame: (id: string) => void;
-  onUpdateFramesOffset: (ids: string[], x: number, y: number) => void;
+  onUpdateFramesOffset: (ids: string[], x: number, y: number, options?: { skipHistory?: boolean }) => void;
+  onBeginOffsetDragUndoStep: () => void;
   onUndo: () => void;
   canUndo: boolean;
   visualScale: number;
@@ -89,6 +90,7 @@ export function SpriteAnalyzer({
   onReorderFrames,
   onFocusFrame,
   onUpdateFramesOffset,
+  onBeginOffsetDragUndoStep,
   onSelectIds,
   onUndo,
   canUndo,
@@ -131,6 +133,7 @@ export function SpriteAnalyzer({
   const viewportRef = useRef<HTMLDivElement>(null);
   const workAreaRef = useRef<HTMLDivElement>(null);
   const hasMovedGuideRef = useRef(false);
+  const hasStartedOffsetDragUndoRef = useRef(false);
 
   const playbackFrames = activeFrames;
 
@@ -367,6 +370,7 @@ export function SpriteAnalyzer({
   const handleFrameMouseDown = (e: React.MouseEvent) => {
     if (isPlaying) return;
     setIsDraggingFrame(true);
+    hasStartedOffsetDragUndoRef.current = false;
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
@@ -415,7 +419,11 @@ export function SpriteAnalyzer({
       
       if (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1) {
         const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : (focusedFrameId ? [focusedFrameId] : []);
-        onUpdateFramesOffset(targetIds, Math.round(deltaX), Math.round(deltaY));
+        if (!hasStartedOffsetDragUndoRef.current) {
+          onBeginOffsetDragUndoStep();
+          hasStartedOffsetDragUndoRef.current = true;
+        }
+        onUpdateFramesOffset(targetIds, Math.round(deltaX), Math.round(deltaY), { skipHistory: true });
         setDragStart({ x: e.clientX, y: e.clientY });
       }
     }
@@ -425,6 +433,7 @@ export function SpriteAnalyzer({
     setIsDraggingGuide(false);
     setIsDraggingGround(false);
     setIsDraggingFrame(false);
+    hasStartedOffsetDragUndoRef.current = false;
     setIsDraggingPivot(false);
     setIsPanningViewport(false);
   };
@@ -596,8 +605,8 @@ export function SpriteAnalyzer({
                   </div>
                   <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
                 </div>
-                <p className="text-[8px] text-zinc-400/90 leading-relaxed px-1">
-                  Sleep de sprite om de frame-offset aan te passen. Gebruik Fine-tune voor kleine stappen.
+                <p className="text-[10px] text-zinc-200 leading-snug px-1 py-1 rounded-md bg-zinc-900 border border-zinc-700/70">
+                  Sleep sprite = frame-offset. Undo herstelt de hele sleepactie.
                 </p>
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="grid grid-cols-3 gap-1">
