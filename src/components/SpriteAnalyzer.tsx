@@ -897,7 +897,7 @@ export function SpriteAnalyzer({
                         height: `${currentPreviewFrame.originalHeight * visualScale}px`,
                       }}
                     >
-                      <div className="absolute -top-5 left-0 bg-rose-500/70 text-[9px] text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                      <div className="absolute -top-5 left-0 bg-zinc-950/75 border border-rose-300/60 text-[9px] text-rose-100 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap shadow-[0_1px_3px_rgba(0,0,0,0.7)] [text-shadow:0_1px_1px_rgba(0,0,0,0.85)]">
                         Frame bounds
                       </div>
                     </div>
@@ -913,7 +913,7 @@ export function SpriteAnalyzer({
                         height: `${currentPreviewFrame.trimmedBox.h * visualScale}px`,
                       }}
                     >
-                      <div className="absolute -top-5 left-0 bg-amber-400/90 text-[9px] text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap">
+                      <div className="absolute -top-5 left-0 bg-zinc-950/75 border border-amber-300/70 text-[9px] text-amber-100 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest whitespace-nowrap shadow-[0_1px_3px_rgba(0,0,0,0.7)] [text-shadow:0_1px_1px_rgba(0,0,0,0.85)]">
                         Trimmed bounds
                       </div>
                     </div>
