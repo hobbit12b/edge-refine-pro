@@ -606,7 +606,7 @@ export function SpriteAnalyzer({
                   <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
                 </div>
                 <p className="text-[10px] text-zinc-200 leading-snug px-1 py-1 rounded-md bg-zinc-900 border border-zinc-700/70">
-                  Sleep de sprite om de frame-offset aan te passen. Dit wordt als één undo-stap opgeslagen.
+                  Sleep sprite = frame-offset. Undo herstelt de hele sleepactie.
                 </p>
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="grid grid-cols-3 gap-1">
