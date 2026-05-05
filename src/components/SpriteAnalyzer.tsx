@@ -605,8 +605,8 @@ export function SpriteAnalyzer({
                   </div>
                   <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
                 </div>
-                <p className="text-[10px] text-zinc-200 leading-snug px-1 py-1 rounded-md bg-zinc-900 border border-zinc-700/70">
-                  Sleep sprite = frame-offset. Undo herstelt de hele sleepactie.
+                <p className="text-[9px] text-zinc-500 leading-snug px-1">
+                  Sleep de afbeelding om deze te verplaatsen. Gebruik de pijltjes voor kleine aanpassingen.
                 </p>
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="grid grid-cols-3 gap-1">
