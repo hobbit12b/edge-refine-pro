@@ -505,6 +505,9 @@ export function SpriteAnalyzer({
     ? playbackFrames[safePlaybackIndex]
     : focusedFrame;
 
+  // NOTE: This intentionally re-labels the existing overlay semantics.
+  // "Sprite bounds" in Analyze & Align has always been currentPreviewFrame.trimmedBox,
+  // which represents the visible non-transparent (trimmed) pixel bounds.
   const hasTrimmedBounds = Boolean(currentPreviewFrame?.trimmedBox);
   const metadataFrame = currentPreviewFrame;
   const frameChapters = metadataFrame
