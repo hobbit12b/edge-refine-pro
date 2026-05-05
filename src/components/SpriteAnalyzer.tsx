@@ -596,6 +596,9 @@ export function SpriteAnalyzer({
                   </div>
                   <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
                 </div>
+                <p className="text-[8px] text-zinc-400/90 leading-relaxed px-1">
+                  Sleep de sprite om de frame-offset aan te passen. Gebruik Fine-tune voor kleine stappen.
+                </p>
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="grid grid-cols-3 gap-1">
                     <div />
@@ -853,7 +856,7 @@ export function SpriteAnalyzer({
 
               <div 
                 onMouseDown={handleFrameMouseDown}
-                className={`relative w-full h-full border border-zinc-700/50 ${isDraggingFrame ? 'cursor-grabbing' : 'cursor-grab'}`}
+                className={`relative w-full h-full border border-zinc-700/50 ${isSpacePressed ? 'cursor-default' : isDraggingFrame ? 'cursor-grabbing' : 'cursor-grab'}`}
               >
                 {settings.showOnionSkin && onionSkinFrame?.url && !isPlaying && (
                   <img
