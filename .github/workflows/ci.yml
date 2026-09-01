@@ -4,9 +4,6 @@ on:
   pull_request:
   push:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,8 +11,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -28,68 +23,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Apply scoped Analyze & Align UI patch
-        if: github.event_name == 'push' && github.ref_name == 'codex/analyze-align-pivot-move-ui-consistency'
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('src/components/SpriteAnalyzer.tsx')
-          text = path.read_text()
+      # Lint is intentionally excluded from required CI for now.
+      # Re-enable `npm run lint` in a separate PR after existing lint errors are cleaned up.
 
-          replacements = [
-              ("  Check,\n  Crosshair\n} from 'lucide-react';", "  Check,\n  Crosshair,\n  Move\n} from 'lucide-react';"),
-              ('<div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />', '<Anchor size={12} className="text-purple-500" />'),
-              ('<span className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Pivot punt</span>', '<span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pivotpunt</span>'),
-              ('<p className="text-[8px] text-zinc-400/90 leading-relaxed italic">', '<p className="text-[9px] text-zinc-500 leading-snug px-1">'),
-              ('Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.', 'Bepaalt het vaste ankerpunt waarmee frames worden uitgelijnd.'),
-              ('<Target size={12} className="text-purple-500" />\n                    Fine-tune', '<Move size={12} className="text-purple-500" />\n                    Verplaatsen'),
-          ]
-
-          for old, new in replacements:
-              count = text.count(old)
-              assert count == 1, f'Expected exactly one match, found {count}: {old[:60]}'
-              text = text.replace(old, new, 1)
-
-          path.write_text(text)
-          PY
-
-          rm -f .github/workflows/temp-analyze-align-ui.yml
-          cat > .github/workflows/ci.yml <<'YAML'
-          name: CI
-
-          on:
-            pull_request:
-            push:
-
-          jobs:
-            build:
-              runs-on: ubuntu-latest
-
-              steps:
-                - name: Checkout repository
-                  uses: actions/checkout@v4
-
-                - name: Use Node.js
-                  uses: actions/setup-node@v4
-                  with:
-                    node-version: 20
-
-                - name: Install dependencies
-                  run: npm install
-
-                - name: Build
-                  run: npm run build
-
-                # Lint is intentionally excluded from required CI for now.
-                # Re-enable `npm run lint` in a separate PR after existing lint errors are cleaned up.
-
-                # Tests are intentionally excluded from required CI for now.
-                # Re-enable `npm run test` in a separate PR after existing test issues are cleaned up.
-          YAML
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/SpriteAnalyzer.tsx .github/workflows/ci.yml
-          git add -u .github/workflows/temp-analyze-align-ui.yml || true
-          git commit -m "Refine Pivotpunt and Verplaatsen UI"
-          git push origin HEAD:codex/analyze-align-pivot-move-ui-consistency
+      # Tests are intentionally excluded from required CI for now.
+      # Re-enable `npm run test` in a separate PR after existing test issues are cleaned up.
