@@ -28,7 +28,8 @@ import {
   RotateCcw,
   ArrowUpDown,
   Check,
-  Crosshair
+  Crosshair,
+  Move
 } from 'lucide-react';
 import { Frame, SpriteSheetSettings, AnimationChapter } from '../types';
 import { PlaybackControls } from './PlaybackControls';
@@ -588,11 +589,11 @@ export function SpriteAnalyzer({
               {/* Pivot punt info */}
               <div className="px-1 py-2 border-b border-zinc-800/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-widest">Pivot punt</span>
+                  <Anchor size={12} className="text-purple-500" />
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pivotpunt</span>
                 </div>
-                <p className="text-[8px] text-zinc-400/90 leading-relaxed italic">
-                  Bepaal het ankerpunt van je personage door de paarse stip te verplaatsen.
+                <p className="text-[9px] text-zinc-500 leading-snug px-1">
+                  Bepaalt het vaste ankerpunt waarmee frames worden uitgelijnd.
                 </p>
               </div>
 
@@ -600,8 +601,8 @@ export function SpriteAnalyzer({
               <div className="space-y-3 pt-4 border-t border-zinc-800/50 mt-2">
                 <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                   <div className="flex items-center gap-2">
-                    <Target size={12} className="text-purple-500" />
-                    Fine-tune
+                    <Move size={12} className="text-purple-500" />
+                    Verplaatsen
                   </div>
                   <span className="text-purple-400 font-mono text-[9px]">{focusedFrame?.offset?.x || 0}, {focusedFrame?.offset?.y || 0}</span>
                 </div>
